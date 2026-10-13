@@ -1,0 +1,27 @@
+[package]
+name = "penciltrade"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+name = "penciltrade"
+crate-type = ["cdylib", "lib"]
+doctest = false
+
+[features]
+default = ["custom-heap"]
+custom-heap = []
+no-entrypoint = []
+
+[dependencies]
+solana-program = "=2.1.21"
+borsh = { version = "1.5.7", features = ["derive"] }
+spl-token = { version = "7.0.0", features = ["no-entrypoint"] }
+
+[workspace]
+members = ["mock-oracle"]
+
+[profile.release]
+overflow-checks = true
+lto = "fat"
+codegen-units = 1

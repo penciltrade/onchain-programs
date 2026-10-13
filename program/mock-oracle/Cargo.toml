@@ -1,0 +1,11 @@
+[package]
+name = "penciltrade-mock-phoenix"
+version = "0.1.0"
+edition = "2021"
+[lib]
+name = "penciltrade_mock_phoenix"
+crate-type = ["cdylib", "lib"]
+doctest = false
+[dependencies]
+solana-program = "=2.1.21"
+borsh = { version = "1.5.7", features = ["derive"] }

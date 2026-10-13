@@ -1,0 +1,9 @@
+**/target/
+.tools/
+.cache/
+.env
+.env.*
+*.so
+*-keypair.json
+*.sqlite*
+*.log

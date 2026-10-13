@@ -1,0 +1,9 @@
+.git
+**/target
+.tools
+.cache
+.env
+.env.*
+*-keypair.json
+*.sqlite*
+*.log

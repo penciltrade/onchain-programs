@@ -1,0 +1,16 @@
+{
+  "format": "penciltrade-verifiable-build-v1",
+  "verifierVersion": "0.5.2",
+  "verifierLinuxSha256": "b9d5ccce9634dc14269cab3e7a58649bc141b3306e7735a94478c936341f211f",
+  "agaveVersion": "2.1.21",
+  "platformToolsVersion": "v1.43",
+  "baseImage": "solanafoundation/solana-verifiable-build@sha256:c78fd4ff5399ee5ea3e154881e8991bd8064899ca162a59cafc682da5a5bd516",
+  "libraryName": "penciltrade",
+  "mountPath": ".",
+  "workspacePath": "program",
+  "cargoBuildSbfArgs": "--tools-version v1.43",
+  "cargoArgs": [
+    "--locked"
+  ],
+  "architecture": "Agave 2.1.21 default sbfv1"
+}

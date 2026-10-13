@@ -1,0 +1,47 @@
+name: Onchain builds
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  native:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+      - run: cargo test --manifest-path program/Cargo.toml --workspace --lib --locked
+  verifiable:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+      - name: Install pinned verifier
+        run: |
+          mkdir -p "$RUNNER_TEMP/penciltrade-tools"
+          curl --fail --location --retry 3 https://github.com/solana-foundation/solana-verifiable-build/releases/download/v0.5.2/solana-verify-0.5.2-linux -o "$RUNNER_TEMP/penciltrade-tools/solana-verify"
+          cd "$RUNNER_TEMP/penciltrade-tools"
+          echo 'b9d5ccce9634dc14269cab3e7a58649bc141b3306e7735a94478c936341f211f  solana-verify' | sha256sum --check
+          chmod 755 solana-verify
+          echo "$RUNNER_TEMP/penciltrade-tools" >> "$GITHUB_PATH"
+      - name: Build twice and compare complete bytes
+        run: |
+          bash scripts/build-verifiable.sh
+          cp program/target/deploy/penciltrade.so "$RUNNER_TEMP/penciltrade-first.so"
+          rm -rf program/target
+          bash scripts/build-verifiable.sh
+          cmp "$RUNNER_TEMP/penciltrade-first.so" program/target/deploy/penciltrade.so
+          cd program/target/deploy
+          sha256sum penciltrade.so > penciltrade.so.sha256
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: penciltrade-verifiable-executable
+          path: |
+            program/target/deploy/penciltrade.so
+            program/target/deploy/penciltrade.so.sha256
+          if-no-files-found: error
