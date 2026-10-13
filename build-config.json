@@ -9,8 +9,7 @@
   "mountPath": ".",
   "workspacePath": "program",
   "cargoBuildSbfArgs": "--tools-version v1.43",
-  "cargoArgs": [
-    "--locked"
-  ],
-  "architecture": "Agave 2.1.21 default sbfv1"
+  "cargoArgs": [],
+  "architecture": "Agave 2.1.21 default sbfv1",
+  "lockfilePolicy": "solana-verify 0.5.2 supplies --locked internally"
 }

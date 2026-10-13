@@ -63,7 +63,7 @@ solana-verify verify-from-repo \
   --base-image solanafoundation/solana-verifiable-build@sha256:c78fd4ff5399ee5ea3e154881e8991bd8064899ca162a59cafc682da5a5bd516 \
   --cargo-build-sbf-args='--tools-version v1.43' \
   --keypair <loader-authority-keypair-path> \
-  https://github.com/penciltrade/onchain-programs -- --locked
+  https://github.com/penciltrade/onchain-programs
 ```
 
 After the local hash comparison passes, upload the verification metadata when prompted.
