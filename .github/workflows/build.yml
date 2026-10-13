@@ -33,7 +33,7 @@ jobs:
         run: |
           bash scripts/build-verifiable.sh
           cp program/target/deploy/penciltrade.so "$RUNNER_TEMP/penciltrade-first.so"
-          rm -rf program/target
+          sudo rm -rf program/target
           bash scripts/build-verifiable.sh
           cmp "$RUNNER_TEMP/penciltrade-first.so" program/target/deploy/penciltrade.so
           cd program/target/deploy
