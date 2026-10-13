@@ -14,6 +14,6 @@ if version.split()[-1] != c['verifierVersion']:
 root = Path.cwd()
 subprocess.run(['solana-verify', 'build', str(root), '--workspace-path', str(root / c['workspacePath']),
     '--library-name', c['libraryName'], '--base-image', c['baseImage'],
-    '--cargo-build-sbf-args', c['cargoBuildSbfArgs'], '--', *c['cargoArgs']], check=True)
+    '--cargo-build-sbf-args=' + c['cargoBuildSbfArgs'], '--', *c['cargoArgs']], check=True)
 subprocess.run(['solana-verify', 'get-executable-hash', str(root / c['workspacePath'] / 'target/deploy/penciltrade.so')], check=True)
 PYCONFIG
