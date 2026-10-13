@@ -35,6 +35,7 @@ jobs:
           cp program/target/deploy/penciltrade.so "$RUNNER_TEMP/penciltrade-first.so"
           sudo rm -rf program/target
           bash scripts/build-verifiable.sh
+          sudo chown -R "$(id -u):$(id -g)" program/target
           cmp "$RUNNER_TEMP/penciltrade-first.so" program/target/deploy/penciltrade.so
           cd program/target/deploy
           sha256sum penciltrade.so > penciltrade.so.sha256
