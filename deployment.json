@@ -25,5 +25,18 @@
     "exponent": 2,
     "basis": "LP after winning-exposure reserves"
   },
-  "protocolStateWrittenByUpgrade": false
+  "protocolStateWrittenByUpgrade": false,
+  "metadata": {
+    "address": "5YGminZo6FJC55FESs6PUPb3X5JcNLSJqd2k18Uq6eVe",
+    "name": "PENCIL",
+    "symbol": "PENCIL",
+    "uri": "https://raw.githubusercontent.com/penciltrade/onchain-programs/main/pencil-token.json",
+    "updateAuthority": "FtVKLnTU3E3rhwyKK1iKEqvXd4yyWbNzwpZzp6EpXZqP",
+    "isMutable": true,
+    "signature": "2n334ZR3Jnx7pUgskCM5ii1qQXyUnQayDcp3o2o112UvJaoytZ7yDUWBhiW1L6tKrbi2doq4Jg9iAKrnnD2tkCwr",
+    "slot": 457369338,
+    "image": "https://penciltrade.fun/icon-512.png"
+  },
+  "remoteVerificationStatus": "verified",
+  "verificationRequestId": "e66b5721-2cfb-4061-bd02-54613a076126"
 }

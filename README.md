@@ -145,8 +145,10 @@ Offchain examples refer to tools and evidence maintained separately.
 ## PENCIL token metadata
 
 The deployed program includes `CreatePencilMetadata`, instruction tag 38. The loader authority can call it only before Seal.
-The instruction creates the fixed PENCIL name, symbol, and metadata URL without changing mint authority, supply, balances, or protocol state.
+The instruction creates fixed PENCIL display fields without changing mint authority, supply, balances, or protocol state.
 The metadata JSON references `https://penciltrade.fun/icon-512.png`.
 The payer retains metadata update authority until wallet display checks finish and metadata becomes immutable.
-The public [token metadata JSON](pencil-token.json) contains the wallet display fields and approved image URL.
+The wallet metadata URI points directly to the public [GitHub JSON](https://raw.githubusercontent.com/penciltrade/onchain-programs/main/pencil-token.json).
+The creation transaction applies that URI through the payer's Metaplex authority. Both operations succeed or roll back together.
+Wallet indexing returns the PENCIL name, symbol, GitHub URI, and approved image.
 The deployed release and its source build appear in `deployment.json`.
