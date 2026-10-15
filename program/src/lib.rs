@@ -3,6 +3,7 @@
 mod hardening_tests;
 pub mod ledger;
 pub mod math;
+mod metadata;
 #[cfg(test)]
 mod recovery_tests;
 pub mod storage;
@@ -635,8 +636,7 @@ pub fn remove_relayer(s: &mut State, now: i64) -> ProgramResult {
     if !s.immutable {
         return Err(ProgramError::Custom(NOT_SEALED));
     }
-    if !s.permissionless && now.saturating_sub(s.last_sequenced_at) < SEQUENCER_TIMEOUT
-    {
+    if !s.permissionless && now.saturating_sub(s.last_sequenced_at) < SEQUENCER_TIMEOUT {
         return Err(ProgramError::Custom(RECOVERY_DELAY));
     }
     s.permissionless = true;
@@ -1083,6 +1083,9 @@ pub fn min_governance_delay(local_mode: bool, devnet: bool) -> i64 {
 }
 pub fn process_instruction(id: &Pubkey, a: &[AccountInfo], data: &[u8]) -> ProgramResult {
     let ix = Instruction::try_from_slice(data).map_err(|_| ProgramError::InvalidInstructionData)?;
+    if matches!(ix, Instruction::CreatePencilMetadata) {
+        return metadata::create(id, a);
+    }
     if disabled_governance(&ix) {
         return Err(ProgramError::Custom(IMMUTABLE));
     }
@@ -1438,9 +1441,7 @@ pub fn process_instruction(id: &Pubkey, a: &[AccountInfo], data: &[u8]) -> Progr
             }
         }
         Instruction::Seal => seal(id, a, &mut s, now)?,
-        Instruction::RemoveRelayer => {
-            remove_relayer(&mut s, now)?
-        }
+        Instruction::RemoveRelayer => remove_relayer(&mut s, now)?,
         Instruction::SequencerHeartbeat => {
             if actor != s.sequencer {
                 return Err(ProgramError::MissingRequiredSignature);
@@ -1630,7 +1631,7 @@ pub fn process_instruction(id: &Pubkey, a: &[AccountInfo], data: &[u8]) -> Progr
             user_index(&s, &actor)?;
             rent_withdrawal = Some(lamports);
         }
-        Instruction::Initialize { .. } => unreachable!(),
+        Instruction::Initialize { .. } | Instruction::CreatePencilMetadata => unreachable!(),
     }
     storage::save(id, a, &mut s, snapshot)?;
     if let Some(lamports) = rent_withdrawal {

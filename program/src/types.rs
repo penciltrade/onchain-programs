@@ -406,4 +406,6 @@ pub enum Instruction {
         market: Market,
         clear_pause: bool,
     },
+    /// Create the fixed PENCIL metadata before Seal, signed by loader authority.
+    CreatePencilMetadata,
 }

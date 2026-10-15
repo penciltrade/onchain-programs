@@ -141,3 +141,11 @@ See [LICENSE](LICENSE) for the complete terms. Third-party dependencies retain t
 The [documentation index](docs/README.md) contains the eight website user guides.
 They explain trading, balances, rewards, prices, permissions, and recovery under the deployed rules.
 Offchain examples refer to tools and evidence maintained separately.
+
+## PENCIL token metadata
+
+The metadata candidate adds `CreatePencilMetadata`, instruction tag 38. The loader authority can call it only before Seal.
+The instruction creates the fixed PENCIL name, symbol, and metadata URL without changing mint authority, supply, balances, or protocol state.
+The metadata JSON references `https://penciltrade.fun/apple-touch-icon.png`.
+The payer retains metadata update authority until wallet display checks finish and metadata becomes immutable.
+The deployed release remains the version recorded in `deployment.json` until the candidate upgrade completes.
