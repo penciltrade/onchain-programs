@@ -138,6 +138,6 @@ See [LICENSE](LICENSE) for the complete terms. Third-party dependencies retain t
 
 ## Frontend documentation
 
-The [documentation index](docs/README.md) contains the frontend reference pages and their illustration.
-The snapshot distinguishes the current program from policies queued for a later upgrade.
+The [documentation index](docs/README.md) contains the eight website user guides.
+They explain trading, balances, rewards, prices, permissions, and recovery under the deployed rules.
 Offchain examples refer to tools and evidence maintained separately.

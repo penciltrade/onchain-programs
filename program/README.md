@@ -17,7 +17,7 @@ The house starts with zero cash. Unpaid profits become unsecured FIFO claims.
 | `mock-oracle/src/lib.rs` | Authority-controlled quote accounts and the Hawkeye-compatible view. |
 
 `../protocol-abi.json` describes the generated ABI. `../sdk/` implements the JavaScript ABI.
-`../docs/07-programs.md` lists instruction tags and their account requirements.
+`src/lib.rs` defines instruction tags and account requirements.
 `../formal-verification/` defines the review scope and properties. No property has proof evidence yet.
 
 ## Accounts and units
@@ -119,7 +119,7 @@ Fill delay ranges from 1 to 25 slots outside local mode. The window ranges from 
 Local mode permits zero delay and bypasses the window comparison in that case.
 The devnet bootstrap defaults are 6 slots, 24 slots, 20-slot reference age, and 50 bp deviation.
 The SDK supplies mainnet starter defaults: 10-slot delay, 50-slot window, 30-slot freshness, and 300 bp mark/index deviation.
-Initialization records explicit parameters. Seal freezes them. See `../docs/immutable-release.md` for the complete profile.
+Initialization records explicit parameters. Seal freezes them. `src/types.rs` and `src/math.rs` define fixed constants and economic curves.
 
 ## Admission, delegates, and exits
 
@@ -222,7 +222,7 @@ Settling a position of a stopped market takes no fee and shares no profit.
 Stopped positions settle at their frozen mark without external oracle calls. Pending reservations can be refunded out of order, leaving FIFO tombstones.
 Funded custody withdrawals, unstaking, claims, and rent access remain independent of these services.
 Underfunded claims retain the selected FIFO economics; no new solvency guarantee is introduced.
-See [the recovery specification](../docs/11-recovery.md) for account details, thresholds, direct commands, and limitations.
+See [the outage guide](../docs/11-recovery.md) for user recovery paths and their limitations.
 
 ## Bounds and evidence
 

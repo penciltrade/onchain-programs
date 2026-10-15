@@ -1,55 +1,55 @@
-# Track USDC
+# Deposit, claim, and withdraw USDC
 
-USDC uses six decimals. All transfers use ordinary SPL Token accounts. A program-derived address, or PDA, identifies a program-controlled account. The state PDA controls the USDC vault, PENCIL mint authority, and staking vault. The vault holds the USDC that backs client balances. PENCIL balances become actual SPL balances after reward minting.
+Penciltrade uses native Solana USDC. Tokens on another network and bridged assets do not count as deposits into this deployment.
+The [program reference](07-programs.md) lists the USDC mint and program addresses.
 
-## Separate cash and debt
+## Deposit and withdraw
 
-Accounted USDC is cash assigned within the program's ledger. Its invariant is:
+1. Connect the wallet that owns the funds.
+2. Open the deposit action.
+3. Choose an amount of native Solana USDC.
+4. Review and authorize the transaction in your wallet.
+5. Wait for confirmation before using the new available balance.
 
-```
-Accounted USDC = funded user balances
-              + cash margin reserved or open
-              + funded team/staker rewards
-              + genuine house cash
-USDC vault >= accounted USDC
-```
+Your wallet needs SOL for transaction fees and any required account storage.
+A deposit credits your available balance. It does not automatically open a trade, stake PENCIL, or fund the house.
 
-The program tracks unpaid claims separately. A claim is an owner's unpaid settlement amount. It also separately tracks debt collateral for pending or open trades. Neither counts as USDC in the vault. House equity includes those contingent liabilities and can be negative. A contingent liability depends on a later outcome.
+To withdraw, choose an amount from available USDC and authorize the withdrawal with the owner wallet.
+The program sends the USDC to that wallet's token account.
+A trading delegate cannot withdraw your custody funds.
 
-| Event | Cash movement | Debt movement |
-| --- | --- | --- |
-| Deposit | Wallet USDC enters the vault and increases the funded balance. | None. |
-| Cash open | Available balance becomes reserved or open margin. | None. |
-| Cash loss | Surviving principal returns. Lost cash funds the house and eligible fees. | None. |
-| Cash win | Principal returns. House cash pays the profit that it can fund. | Unpaid net profit becomes a new claim. |
-| Claim repayment | House cash becomes the owner's funded balance. | The oldest claim decreases. |
-| Debt open | No USDC enters. | The claim becomes reserved or open contingent collateral. |
-| Debt loss | No fresh USDC enters. | The loss cancels debt. Surviving debt settles at a new priority. |
-| Debt win | The house pays the amount that it can fund after older claims. | Surviving principal and unpaid net profit become a new claim. |
-| PENCIL mint | No USDC enters. | No automatic claim repayment occurs. |
+## Read the balances
 
-Users cannot withdraw open margin, pending reservations, unpaid claims, or unminted token credits as USDC. A delegate cannot withdraw, change the owner, or move custody of ownership tokens. The relayer has no instruction for vault withdrawals.
+| Balance | What it represents |
+| --- | --- |
+| Available USDC | Funded cash you can use or withdraw. |
+| Reserved cash | Funds committed to an admitted order that has not reached its final result. |
+| Position margin | Funds committed to an open position. |
+| Unpaid claims | Amounts the house owes but has not funded for withdrawal. |
+| PENCIL credits | Earned tokens you can mint. These are not USDC. |
+| Unclaimed staking rewards | Earned USDC rewards you can claim into your available balance. |
 
-## Assign cash in priority order
+You cannot withdraw reserved cash, open margin, unpaid claims, or unminted token credits as available USDC.
+Closing a cash-funded position returns its surviving cash principal.
+Any profit the house cannot pay becomes an unpaid claim.
 
-An IOU is an unpaid debt obligation. An IOU loss cannot create house cash. Cash losses serve existing claims in FIFO order. FIFO means first in, first out. While that queue remains, the program blocks payments to younger closes and allocations of new fees. The program does not use a second token account for this priority.
+## Understand cash and claim collateral
 
-Funded available balances and funded accrued rewards remain protected from ordinary trading settlement. The ledger already assigns that cash, so it is unavailable as house capital. Before and after each mutation, the program makes sure that the actual vault covers accounted cash. Unsolicited token transfers remain uncredited excess. They neither seed the house nor disable later actions.
+A cash-funded position starts with actual USDC margin.
+A claim-funded position starts with a debt obligation, not cash that the house already holds.
+Losing claim value cancels that debt. It does not add USDC to the vault.
+Surviving claim principal and new profit remain claims until funded.
 
-New fees require an empty queue for payouts and reservations. House cash must also cover all issued IOU principal plus the fee, including debt locked in open positions. This rule prevents fee payments when existing contingent liabilities exceed cash. The program cannot reserve unknown future profits that have no cap.
+House equity measures shared funds after its obligations. It can be negative.
+Positive trading profit does not guarantee immediate payment, and FIFO repayment does not guarantee eventual payment.
 
-## Distinguish tracked LP from cash
+## Understand fees and rewards
 
-Tracked LP measures equity for emissions and profit allocations. LP refers to liquidity in the shared house. Eligible settled loss raises tracked LP. Settled gains and funded reward allocations lower it. Only retained cash profit builds LP equity. Repayment of a recorded claim does not count that gain twice.
+The trading fee is 2% of adjusted winning gain or an eligible house gain from a loss.
+It is not 2% of margin or notional.
+The team and stakers each receive half of funded distributable trading fees.
+Older unpaid payouts and their reservations take priority over eligible fee distributions.
 
-Debt cancellation can improve tracked equity without adding cash or triggering profit allocation. For reachable states, the review target is `tracked_lp = house_cash - (claims + pending_debt + open_debt)`. Each aggregate liability field uses `u64`. Their debt sum uses `u128`. Reservations count once through pending debt. A claim's `reserved` field supplies its FIFO barrier and does not add another debt amount.
-
-A positive tracked number does not establish an equal amount of spendable USDC. The House tab displays house cash, net equity, queued debt, locked debt, vault coverage, and fees. It compares vault cash with accounted cash. It does not display tracked LP itself.
-
-## Account for implementation limits
-
-The program rejects integer operations outside their defined ranges. Settlement and ownership emissions round down to the smallest token unit. Version 2 stores users, positions, intents, claims, and proposals in separate PDAs funded through rent. Rent funds the storage that an account occupies. The root records global totals and 32 recent outcomes.
-
-Each instruction adjusts global liabilities from changes in the records that it loads. Records absent from a transaction therefore retain their liabilities in solvency calculations. Arithmetic or account-capacity failures reject the transaction atomically. Atomic rejection leaves all transaction changes unapplied. Transaction size, account indexing, rent, and shared-root contention still limit throughput.
-
-[Recovery](11-recovery.md) specifies permanent market wind-down, frozen-mark settlement, reservation refunds, timed public admission, and independent custody access. These termination rules belong to v3. Claims without full funding retain their existing repayment limits.
+Claiming staking rewards credits your available USDC. Withdrawal is a separate action.
+Owner-controlled custody actions do not require a current price or the relayer's trading signature.
+If the website or relayer is unavailable, an independent client can submit those actions directly to Solana.

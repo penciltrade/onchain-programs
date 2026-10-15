@@ -2,136 +2,56 @@
   "format": "penciltrade-frontend-documentation-v1",
   "snapshotDate": "2026-10-15",
   "license": "AGPL-3.0-only",
+  "sourceDirectory": "docs/user",
   "pages": [
     {
       "file": "01-overview.md",
-      "title": "PENCILTRADE",
-      "sha256": "70308b932cbb865c05f70117cc76f67a5ef236bad559d6680dab53748c3eb0db",
+      "title": "Start with Penciltrade",
+      "sha256": "b56773f88412a691d89ea340ded5fb6c6f6c748b03044df1d41349e85d472243",
       "portableChanges": []
     },
     {
       "file": "02-trading.md",
-      "title": "Follow the trading rules",
-      "sha256": "38cd495600ee166c82d70b6b38c1df65b68426a45c89b2c486e0fca5620a9f19",
+      "title": "Open and close positions",
+      "sha256": "bef1bfc704cb8dbc106d89a88b31c4f0b30b158ac20cf76209f503d6c59dc062",
       "portableChanges": []
     },
     {
       "file": "03-queues.md",
-      "title": "Use the queues",
-      "sha256": "f39e2d9736a04b2193bf0035dc432c46117506a3d1895383bcb3c4c16966c483",
+      "title": "Understand orders and profit claims",
+      "sha256": "c2c4ccc0fd8a0c2a96b9d79fa38460ce297a3e56d8b280eccbcae6340d16d3ba",
       "portableChanges": []
     },
     {
       "file": "04-accounting.md",
-      "title": "Track USDC",
-      "sha256": "b190e79ab79efafaefc1cc14fd2ce487d164237d5ac7d439bc48612ba77e1227",
+      "title": "Deposit, claim, and withdraw USDC",
+      "sha256": "1301310fcc737cd6902394c458942a83c6ed194766999a81c6a663a67c3d071d",
       "portableChanges": []
     },
     {
       "file": "05-ownership.md",
-      "title": "Manage PENCIL",
-      "sha256": "bd8730d4140ad67f665d218f97c14a22e64802f09d0085b597992775aa5aa811",
+      "title": "Earn, mint, and stake PENCIL",
+      "sha256": "6731116bef5c013deab2eca3c62fa235b4968175e1b2a8893b4b3eddd03c2774",
       "portableChanges": []
     },
     {
       "file": "06-oracle.md",
-      "title": "Price trades with the Phoenix mark",
-      "sha256": "6f6d4577d4a3b1c2e2350594abe32be9839d8c5312abae16dd246f691d630bec",
+      "title": "Understand prices and execution",
+      "sha256": "8d2cd22a55a1a8c2ef77977ea89387d1dbb2f44c0ac76339cdff3620a4b8b280",
       "portableChanges": []
     },
     {
       "file": "07-programs.md",
-      "title": "Use the programs",
-      "sha256": "580775fe5f1e4475ad59b959e45d8446249849ba5995b867c5a35d5780914481",
-      "portableChanges": []
-    },
-    {
-      "file": "08-operations.md",
-      "title": "Operate the deployment",
-      "sha256": "2cd004274e52b603f69393d0265cc73cccc43a29472c76872058d0ebbe2990b2",
-      "portableChanges": []
-    },
-    {
-      "file": "09-measured-phoenix.md",
-      "title": "Review Phoenix BBO measurements",
-      "sha256": "28ccee0ff0b72dc23e62c84d75d5e1cf43dca9b0e4370938928dc3e10c967255",
-      "portableChanges": [
-        "repository-relative illustration link"
-      ]
-    },
-    {
-      "file": "10-congestion.md",
-      "title": "Handle congestion",
-      "sha256": "93e87ce4315b2ba1808f07072bd6970b556910f0c8e77f33e8362081959d2061",
+      "title": "Check addresses and permissions",
+      "sha256": "e41db3dacc0286edd38ba99272e03ab2df76350760f921d238d5d2fe4c3475bb",
       "portableChanges": []
     },
     {
       "file": "11-recovery.md",
-      "title": "Recover an immutable deployment",
-      "sha256": "93bdc9a535fd2a97d7875e3263c50b37c3abb363bbb253d4e3fcbf544e3ac0e2",
-      "portableChanges": []
-    },
-    {
-      "file": "economic-patch-scope.md",
-      "title": "Define the neutral extraction patch",
-      "sha256": "a8645bb86987fc6e3143eceb9c34527aa31a760eb4a7f170d699c510c2eeb1c2",
-      "portableChanges": []
-    },
-    {
-      "file": "immutability-preparation.md",
-      "title": "Prepare the immutable release",
-      "sha256": "f8de94e5d478ed132521090d27f9dfc80fac02e4a658c49e6aa5b2245f5fc3f6",
-      "portableChanges": []
-    },
-    {
-      "file": "immutable-release.md",
-      "title": "Release immutable code",
-      "sha256": "c949e3d9b357b501fb60626eab6cc8b9cd02275e14b054a2c0a19558181a04b1",
-      "portableChanges": []
-    },
-    {
-      "file": "mainnet-acceptance.md",
-      "title": "Mainnet acceptance criteria",
-      "sha256": "eef1930277917782dd31b2f539a09784dc1f36aaff6ac0084cbbaa043cad24c3",
-      "portableChanges": []
-    },
-    {
-      "file": "mainnet-operations.md",
-      "title": "Mainnet service monitoring",
-      "sha256": "18c50debd25e735cb25082190cbf2081f24287694abb5773fa998ac3e1f1057c",
-      "portableChanges": [
-        "portable incident-agent executable placeholder"
-      ]
-    },
-    {
-      "file": "oracle-slot-cache.md",
-      "title": "Cache Hawkeye observations by slot",
-      "sha256": "2467128a3a888d81cfe59919bf24e015f2a70634ab186d9f52b269bca30db4e3",
-      "portableChanges": []
-    },
-    {
-      "file": "public-launch-2026-10-15.md",
-      "title": "Public opening checklist \u2014 15 October 2026",
-      "sha256": "fe24fa833bbfc565e2712ad11985e50af31c2f47858fef5bf17b0519d5eb89cf",
-      "portableChanges": []
-    },
-    {
-      "file": "release-candidate.md",
-      "title": "Review the deployed v4 release",
-      "sha256": "40a10e0b52c55935a2c9f1ca4b65830c9926588f36e41a50ce108205bf84a331",
-      "portableChanges": []
-    },
-    {
-      "file": "throughput-bench.md",
-      "title": "Review devnet throughput tests",
-      "sha256": "906bb8b1160ff4765484d75b9c0942f1dc330527218df94001d565c3c2d45080",
+      "title": "Handle outages and protect access",
+      "sha256": "fa8f36ad372ed57f27b6ff548e20ef9d9a8e5e5c101aa9ad38edcbb5c1977acd",
       "portableChanges": []
     }
   ],
-  "assets": [
-    {
-      "file": "assets/phoenix-observations.svg",
-      "sha256": "6c2dbcc08462af2cc43259c5d6b269a879effc5c2200f5e2dfa38360c7c14a9f"
-    }
-  ]
+  "assets": []
 }
