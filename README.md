@@ -124,3 +124,14 @@ Unfunded claims retain unsecured FIFO repayment. Frozen settlement does not crea
 
 Mainnet mode pins canonical Circle USDC, Hawkeye, and Phoenix program identities in `program/src/lib.rs`.
 The exact configuration schema, instruction ABI, arithmetic, and fixed constants reside in the Rust source.
+
+## License
+
+Project code and documentation use the GNU Affero General Public License, version 3 only (`AGPL-3.0-only`).
+See [LICENSE](LICENSE) for the complete terms. Third-party dependencies retain their respective licenses.
+
+## Frontend documentation
+
+The [documentation index](docs/README.md) contains the frontend reference pages and their illustration.
+The snapshot distinguishes the current program from policies queued for a later upgrade.
+Offchain examples refer to tools and evidence maintained separately.

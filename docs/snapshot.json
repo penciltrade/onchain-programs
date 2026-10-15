@@ -1,0 +1,131 @@
+{
+  "format": "penciltrade-frontend-documentation-v1",
+  "snapshotDate": "2026-10-15",
+  "license": "AGPL-3.0-only",
+  "pages": [
+    {
+      "file": "01-overview.md",
+      "title": "PENCILTRADE",
+      "sha256": "70308b932cbb865c05f70117cc76f67a5ef236bad559d6680dab53748c3eb0db",
+      "portableChanges": []
+    },
+    {
+      "file": "02-trading.md",
+      "title": "Follow the trading rules",
+      "sha256": "27d45e32abf51227d1f7140e24cb2de57cadfe7fb0ef75623c54ac1860d538eb",
+      "portableChanges": []
+    },
+    {
+      "file": "03-queues.md",
+      "title": "Use the queues",
+      "sha256": "f39e2d9736a04b2193bf0035dc432c46117506a3d1895383bcb3c4c16966c483",
+      "portableChanges": []
+    },
+    {
+      "file": "04-accounting.md",
+      "title": "Track USDC",
+      "sha256": "b190e79ab79efafaefc1cc14fd2ce487d164237d5ac7d439bc48612ba77e1227",
+      "portableChanges": []
+    },
+    {
+      "file": "05-ownership.md",
+      "title": "Manage PENCIL",
+      "sha256": "c18f2b7cd46b9e3d584f4b2d142caea14c017f01a39722f4fe509651801e296e",
+      "portableChanges": []
+    },
+    {
+      "file": "06-oracle.md",
+      "title": "Price trades with the Phoenix mark",
+      "sha256": "419a6b194e82504a96fd9a1988b4dc6dd3f879c1821af4213388c152f02cd867",
+      "portableChanges": []
+    },
+    {
+      "file": "07-programs.md",
+      "title": "Use the programs",
+      "sha256": "9c51d4a1b58b559511b7ba0d172deaa11b363e70999171286ab20a136ea5b454",
+      "portableChanges": []
+    },
+    {
+      "file": "08-operations.md",
+      "title": "Operate the deployment",
+      "sha256": "14a67033bb52d40a041aa023a98272814b906cb2e56e99416fdc3f89de4b052f",
+      "portableChanges": []
+    },
+    {
+      "file": "09-measured-phoenix.md",
+      "title": "Review Phoenix BBO measurements",
+      "sha256": "28ccee0ff0b72dc23e62c84d75d5e1cf43dca9b0e4370938928dc3e10c967255",
+      "portableChanges": [
+        "repository-relative illustration link"
+      ]
+    },
+    {
+      "file": "10-congestion.md",
+      "title": "Handle congestion",
+      "sha256": "93e87ce4315b2ba1808f07072bd6970b556910f0c8e77f33e8362081959d2061",
+      "portableChanges": []
+    },
+    {
+      "file": "11-recovery.md",
+      "title": "Recover an immutable deployment",
+      "sha256": "93bdc9a535fd2a97d7875e3263c50b37c3abb363bbb253d4e3fcbf544e3ac0e2",
+      "portableChanges": []
+    },
+    {
+      "file": "economic-patch-scope.md",
+      "title": "Define the neutral extraction patch",
+      "sha256": "b0fd0b8cc16e0e826ed1142a29f3df221009291fbe1977882300d40ad1a3f5c9",
+      "portableChanges": []
+    },
+    {
+      "file": "immutable-release.md",
+      "title": "Release immutable code",
+      "sha256": "3f18fb0cce6717259e59eef49e41dc7134a6e0b74128e622b9b5b37ab72dfa7a",
+      "portableChanges": []
+    },
+    {
+      "file": "mainnet-acceptance.md",
+      "title": "Draft mainnet acceptance criteria",
+      "sha256": "372af7638250fa2383cd548853f67a882f39b3f4cf17a5f1cac1146be79bde0e",
+      "portableChanges": []
+    },
+    {
+      "file": "mainnet-operations.md",
+      "title": "Mainnet service monitoring",
+      "sha256": "18c50debd25e735cb25082190cbf2081f24287694abb5773fa998ac3e1f1057c",
+      "portableChanges": [
+        "portable incident-agent executable placeholder"
+      ]
+    },
+    {
+      "file": "oracle-slot-cache.md",
+      "title": "Cache Hawkeye observations by slot",
+      "sha256": "2467128a3a888d81cfe59919bf24e015f2a70634ab186d9f52b269bca30db4e3",
+      "portableChanges": []
+    },
+    {
+      "file": "public-launch-2026-10-15.md",
+      "title": "Public opening checklist \u2014 15 October 2026",
+      "sha256": "413e4efdaa3adf4919e62cf3cf687a5d22e7446e05c8512a18496bd92ce1ae23",
+      "portableChanges": []
+    },
+    {
+      "file": "release-candidate.md",
+      "title": "Review the integrated v4 candidate",
+      "sha256": "57037c2bcedca0e896fda4b15d31ce6e8e6916385d353b7bd3c2645a56e01573",
+      "portableChanges": []
+    },
+    {
+      "file": "throughput-bench.md",
+      "title": "Review devnet throughput tests",
+      "sha256": "906bb8b1160ff4765484d75b9c0942f1dc330527218df94001d565c3c2d45080",
+      "portableChanges": []
+    }
+  ],
+  "assets": [
+    {
+      "file": "assets/phoenix-observations.svg",
+      "sha256": "6c2dbcc08462af2cc43259c5d6b269a879effc5c2200f5e2dfa38360c7c14a9f"
+    }
+  ]
+}
