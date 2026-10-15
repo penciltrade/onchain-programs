@@ -36,7 +36,7 @@
     {
       "file": "06-oracle.md",
       "title": "Price trades with the Phoenix mark",
-      "sha256": "419a6b194e82504a96fd9a1988b4dc6dd3f879c1821af4213388c152f02cd867",
+      "sha256": "6f6d4577d4a3b1c2e2350594abe32be9839d8c5312abae16dd246f691d630bec",
       "portableChanges": []
     },
     {
@@ -48,7 +48,7 @@
     {
       "file": "08-operations.md",
       "title": "Operate the deployment",
-      "sha256": "14a67033bb52d40a041aa023a98272814b906cb2e56e99416fdc3f89de4b052f",
+      "sha256": "2cd004274e52b603f69393d0265cc73cccc43a29472c76872058d0ebbe2990b2",
       "portableChanges": []
     },
     {
@@ -74,19 +74,25 @@
     {
       "file": "economic-patch-scope.md",
       "title": "Define the neutral extraction patch",
-      "sha256": "b0fd0b8cc16e0e826ed1142a29f3df221009291fbe1977882300d40ad1a3f5c9",
+      "sha256": "a8645bb86987fc6e3143eceb9c34527aa31a760eb4a7f170d699c510c2eeb1c2",
+      "portableChanges": []
+    },
+    {
+      "file": "immutability-preparation.md",
+      "title": "Prepare the immutable release",
+      "sha256": "f8de94e5d478ed132521090d27f9dfc80fac02e4a658c49e6aa5b2245f5fc3f6",
       "portableChanges": []
     },
     {
       "file": "immutable-release.md",
       "title": "Release immutable code",
-      "sha256": "dd8d0158a1d4c30f3620d21691b3624e105cc86ff0bbbd4d2b92a995603dc1d9",
+      "sha256": "c949e3d9b357b501fb60626eab6cc8b9cd02275e14b054a2c0a19558181a04b1",
       "portableChanges": []
     },
     {
       "file": "mainnet-acceptance.md",
-      "title": "Draft mainnet acceptance criteria",
-      "sha256": "372af7638250fa2383cd548853f67a882f39b3f4cf17a5f1cac1146be79bde0e",
+      "title": "Mainnet acceptance criteria",
+      "sha256": "eef1930277917782dd31b2f539a09784dc1f36aaff6ac0084cbbaa043cad24c3",
       "portableChanges": []
     },
     {
@@ -106,13 +112,13 @@
     {
       "file": "public-launch-2026-10-15.md",
       "title": "Public opening checklist \u2014 15 October 2026",
-      "sha256": "cdcbc192c92d8f2bd9303eb09b1642dcf347668d1ff33928ffc8edef4bc8968b",
+      "sha256": "fe24fa833bbfc565e2712ad11985e50af31c2f47858fef5bf17b0519d5eb89cf",
       "portableChanges": []
     },
     {
       "file": "release-candidate.md",
-      "title": "Review the integrated v4 candidate",
-      "sha256": "57037c2bcedca0e896fda4b15d31ce6e8e6916385d353b7bd3c2645a56e01573",
+      "title": "Review the deployed v4 release",
+      "sha256": "40a10e0b52c55935a2c9f1ca4b65830c9926588f36e41a50ce108205bf84a331",
       "portableChanges": []
     },
     {

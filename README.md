@@ -6,7 +6,8 @@ The production library is `penciltrade`. The test library is `penciltrade_mock_p
 
 The program settles synthetic exposure against shared house cash. It does not hedge positions or place Phoenix orders.
 The house starts with zero cash. Unfunded profits become unsecured FIFO claims.
-V4 requires a fresh program ID and fresh state. Earlier funded layouts have no migration path.
+Earlier v3 layouts require fresh v4 state and a new program ID.
+The deployed economics upgrade preserves compatible funded v4 accounts.
 
 The 10M notional cap and revised PENCIL curves are deployed on mainnet.
 `deployment.json` records the verified native source, upgrade slot, executable hashes, and transaction.
@@ -105,7 +106,7 @@ External oracle programs retain their own authority policies.
 | --- | --- |
 | Maximum leverage | 200x, subject to initialized limits |
 | Minimum margin | 1 USDC |
-| Maximum position notional | 250,000 USDC |
+| Maximum position notional | 10,000,000 USDC |
 | Intent lifetime | 30 seconds |
 | Owner fallback exit delay | 15 seconds |
 | Admission checkpoint age | 120 seconds |
@@ -114,7 +115,8 @@ External oracle programs retain their own authority policies.
 | Mainnet stake warmup | One hour |
 | Eligible trading fee | 2%, divided equally between the pinned team recipient and stakers |
 | Profit buffer | 5,000 USDC of distributable equity |
-| Profit allocation curve | 8% starter share, linear rise from 100,000 to 1,000,000 USDC, then 99% allocation and 1% retention |
+| Profit allocation curve | 8% + 32% × min(max(distributable LP, 0) / 1,000,000, 1)². Capped at 40%, with 60% retention |
+| PENCIL emission | 100 per eligible USDC through 500,000 USDC tracked LP. Above it, 100 × 500,000 / tracked LP |
 | Oracle cache | At most one committed read per market per execution slot |
 | Bounds | 8 markets, 32 oracle accounts per market, 16 actions per batch, 32 recent outcomes |
 | Root ceiling | 65,536 bytes |

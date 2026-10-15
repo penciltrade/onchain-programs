@@ -26,7 +26,7 @@ Constants reside in `program/src/types.rs`, `program/src/math.rs`, and program v
 | Stake warmup | 3,600 seconds |
 | Eligible trading fee | 2%. half to the pinned team recipient and half to stakers |
 | Profit buffer | 5,000 USDC of distributable equity |
-| Starter staker share | 8% below 100,000 USDC after the buffer |
+| Starter staker share | 8% curve intercept. The buffer and funding rules govern distributions |
 | Profit curve | 8% + 32% × min(max(distributable LP, 0) / 1,000,000, 1)² |
 | Share above the curve | 40% allocation. 60% retention |
 | Loss-credit emission | 100 PENCIL through 500,000 USDC tracked LP. Above that threshold, 100 × 500,000 / tracked LP |
@@ -43,11 +43,12 @@ Failed transactions reverse cache writes. Their attempted oracle calls and offch
 
 Mainnet mode pins canonical Circle USDC, Hawkeye, and Phoenix program identities. External program upgrades and account changes remain outside Penciltrade's immutable code. After Seal, oracle accounts and market configuration cannot migrate.
 
-## Choose starter parameters
+## Read the initialized mainnet parameters
 
-`sdk/mainnet-profile.mjs` supplies these SDK defaults. They remain adjustable during the trial and become fixed at Seal. Initialization records explicit values. The Rust program does not replace supplied configuration with these defaults.
+The deployed mainnet markets use the values below. `sdk/mainnet-profile.mjs` supplies matching defaults.
+These values remain adjustable during the trial and become fixed at Seal. The deployment artifact records the explicit initialized values.
 
-| Parameter | Starter value |
+| Parameter | Initialized mainnet value |
 | --- | --- |
 | Common fill delay | 10 slots |
 | Fill window | 50 slots |

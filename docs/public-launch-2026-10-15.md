@@ -1,6 +1,7 @@
 # Public opening checklist — 15 October 2026
 
-The planned opening is 12:00 noon America/New_York, or 16:00 UTC.
+The frontend countdown ends at 18:00 UTC on 15 October 2026, or 02:00 Singapore time on 16 October.
+The backend retains its separately configured wallet-registration policy.
 The opening remains upgradeable. Permanent Seal requires the separate acceptance gates.
 
 ## Before public admission

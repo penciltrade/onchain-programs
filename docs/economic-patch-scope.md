@@ -15,7 +15,7 @@ A coalition consists of participants who coordinate their actions. PnL means pro
 
 ## Correct the allocation source
 
-The marginal staker share starts at 8%. It rises linearly from $100k to $1M and remains 99% above $1M. The independent 2% trading fee remains. The curve applies to distributable equity after the reserve for winning exposure. Winning exposure covers possible payouts to open winners.
+The marginal staker share follows `8% + 32% × min(max(T, 0) / $1M, 1)^2`. It caps at 40%. The independent 2% trading fee remains. The curve applies to distributable equity after the reserve for winning exposure. Winning exposure covers possible payouts to open winners.
 
 Each market stores global long exposure units and short notional. Storage updates these counters from changes in loaded records. A caller cannot omit a winner to remove its reserve. Positions funded with cash or debt both contribute.
 
@@ -52,6 +52,6 @@ The reserve bounds a current or next accepted winning payout. It does not cover 
 
 PENCIL issuance alone does not demonstrate a USDC drain. A blocker requires a complete strategy that converts issuance into uncompensated funded cash extraction. Directional exposure does not excuse custody, arithmetic, signature, or funding failures. Zero initial house liquidity, uncapped directional profit, and gross-loss emissions remain protocol choices.
 
-Bind every result to candidate source and SBF fingerprints.
+Bind every result to the deployed source and SBF fingerprints.
 
 SBF is Solana's compiled program format. Earlier devnet throughput does not establish this settlement code or cache policy. Independent strategy review, live-oracle testing, and sustained load remain acceptance gates.

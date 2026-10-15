@@ -37,7 +37,8 @@ PENCIL starts with zero supply and has no freeze authority.
 Sides are `1` for long and `-1` for short.
 Tickets, record identifiers, and market sequences start at 1. User nonces start at 0.
 
-**Use fresh v4 state and a new program ID. There is no funded-state migration from earlier versions.**
+Earlier v3 layouts require fresh v4 state and a new program ID.
+The deployed economics upgrade preserves compatible funded v4 accounts.
 
 ## Cash and debt
 

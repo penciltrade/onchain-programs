@@ -1,8 +1,9 @@
 # Operate the deployment
 
-V4 requires fresh state and a new program ID. Initialization pins deployment mode and operational keys. Earlier devnet addresses and reports remain historical.
+The mainnet v4 program runs with the deployed economics upgrade. Compatible funded v4 accounts retain their balances, credits, stake, and positions.
+Initialization pins deployment mode and operational keys. Earlier devnet addresses and reports remain historical.
 
-Do not apply this executable to funded earlier state. Earlier layouts are incompatible.
+Earlier v3 layouts require fresh state and a new program ID. They are incompatible with the deployed v4 layout.
 
 ## Build and run the suites
 

@@ -1,8 +1,8 @@
-# Draft mainnet acceptance criteria
+# Mainnet acceptance criteria
 
-Acceptance applies to one program binary, deployment configuration, and version of the SDK and services. A release candidate can enter controlled mainnet testing while upgradeable after identity requirements and trial safeguards pass. Permanent sealing requires every operational gate and a separate decision after the trial. An acceptance gate is a required pass condition. The [mainnet preparation review](../mainnet-prep.md) records patches, evidence, and the trial procedure.
+Acceptance applies to one program binary, deployment configuration, and version of the SDK and services. The current mainnet deployment remains upgradeable during operational acceptance. Permanent sealing requires every operational gate and a separate decision after the trial. An acceptance gate is a required pass condition. The [mainnet preparation review](../mainnet-prep.md) records patches, evidence, and the trial procedure.
 
-The initial target is 16 offered orders per second across all markets. This is a proposed requirement, not measured capacity for this release.
+The initial target is 16 offered orders per second across all markets. This acceptance target requires a complete sustained-capacity measurement for the deployed release.
 
 Increase the target only after another complete capacity run.
 
@@ -19,7 +19,7 @@ Record these items for every test run:
 
 An oracle supplies external price data. The keeper submits maintenance transactions. The relayer prepares transactions and co-signs admission. SBF is Solana's compiled program format. A slot is a scheduled Solana block opportunity.
 
-The v4 candidate needs fresh state for global exposure counters, the funded profit budget, the slot cache, and `1e18` rewards. A cache stores an observation for later reuse. This release provides no migration for existing funded deployments. Historical deployment reports remain historical evidence.
+The deployed v4 layout contains global exposure counters, the funded profit budget, the slot cache, and `1e18` rewards. A cache stores an observation for later reuse. Earlier v3 layouts require fresh state. The deployed economics upgrade preserves existing funded v4 accounts. Historical deployment reports remain historical evidence.
 
 ## Pass correctness gates
 
@@ -60,7 +60,7 @@ A checkpoint records a price that the program accepts. The mark is the oracle's 
 
 A soak is a continuous test for stability. P99 is the value covering 99% of observed samples. Headroom is the remaining capacity before a limit. RSS measures the process's resident memory.
 
-| Metric | Proposed pass condition under healthy oracle and RPC conditions |
+| Metric | Required pass condition under healthy oracle and RPC conditions |
 | --- | --- |
 | Preparation | P99 preparation takes at most 2 seconds. |
 | Preparation to admission | P99 takes at most 5 seconds. This excludes deliberate human signing delay. |
@@ -100,7 +100,7 @@ The v1 sender and history reader must pass on a v1-capable validator and product
 
 Use Agave 4.2.2 or later for that test.
 
-[Solana v1 guidance](https://solana.com/upgrades/larger-transaction-sizes) explains RPC and message configuration. The [slot cache design](oracle-slot-cache.md) defines a separate gate. Compiled cache tests pass for this candidate.
+[Solana v1 guidance](https://solana.com/upgrades/larger-transaction-sizes) explains RPC and message configuration. The [slot cache design](oracle-slot-cache.md) defines a separate gate. Compiled cache tests pass for the deployed release.
 
 During the trial, make sure that committed read counts meet the cap with genuine mainnet oracles.
 
