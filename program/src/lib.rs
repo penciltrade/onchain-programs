@@ -1726,3 +1726,7 @@ mod tests {
         assert!(validate_fill(true, 0, 1).is_ok());
     }
 }
+
+#[cfg(kani)]
+#[path = "../../formal-verification/harnesses/mod.rs"]
+mod verification;

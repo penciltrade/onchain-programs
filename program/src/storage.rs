@@ -457,3 +457,7 @@ pub fn reclaim(
     a.assign(&system_program::id());
     Ok(())
 }
+
+#[cfg(kani)]
+#[path = "../../formal-verification/harnesses/rent.rs"]
+mod verification;

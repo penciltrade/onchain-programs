@@ -20,16 +20,16 @@ Constants reside in `program/src/types.rs`, `program/src/math.rs`, and program v
 | Owner fallback exit delay | 15 seconds |
 | Leverage | 1–200x, subject to the initialized maximum |
 | Minimum margin | 1 USDC |
-| Position notional | At most 250,000 USDC |
+| Position notional | At most 10,000,000 USDC |
 | Configured position multiplier | At most 1,000,000,000 milli |
 | Fill delay and window bounds | 1–25 delay slots and 1–50 window slots. common delay across markets |
 | Stake warmup | 3,600 seconds |
 | Eligible trading fee | 2%. half to the pinned team recipient and half to stakers |
 | Profit buffer | 5,000 USDC of distributable equity |
 | Starter staker share | 8% below 100,000 USDC after the buffer |
-| Profit curve | Linear rise from 8% at 100,000 USDC to 99% at 1,000,000 USDC |
-| Share above the curve | 99% allocation. 1% retention |
-| Loss-credit emission | 100 PENCIL per eligible USDC below the 2,000,000 USDC flat threshold. 120,000,000 USDC tail scale |
+| Profit curve | 8% + 32% × min(max(distributable LP, 0) / 1,000,000, 1)² |
+| Share above the curve | 40% allocation. 60% retention |
+| Loss-credit emission | 100 PENCIL through 500,000 USDC tracked LP. Above that threshold, 100 × 500,000 / tracked LP |
 | Reward and exposure scales | `1e18` reward index. `1e12` normalized exposure |
 | Root allocation ceiling | 65,536 bytes |
 | Market and account bounds | 8 markets. 32 oracle accounts per market |

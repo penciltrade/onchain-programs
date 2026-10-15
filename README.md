@@ -8,6 +8,9 @@ The program settles synthetic exposure against shared house cash. It does not he
 The house starts with zero cash. Unfunded profits become unsecured FIFO claims.
 V4 requires a fresh program ID and fresh state. Earlier funded layouts have no migration path.
 
+This revision is the upgrade candidate for the 10M notional cap and revised PENCIL curves.
+Deployment metadata identifies the currently deployed source commit.
+
 ## Build dependencies
 
 The Rust workspace resides in `program/`. Its `Cargo.lock` fixes the complete crate dependency graph.

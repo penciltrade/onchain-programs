@@ -120,3 +120,7 @@ fn process_instruction(id: &Pubkey, accounts: &[AccountInfo], data: &[u8]) -> Pr
         .serialize(&mut &mut q.try_borrow_mut_data()?[..])
         .map_err(|_| ProgramError::InvalidAccountData)
 }
+
+#[cfg(kani)]
+#[path = "../../../formal-verification/harnesses/mock_oracle.rs"]
+mod verification;

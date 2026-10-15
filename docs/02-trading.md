@@ -15,7 +15,7 @@ A scoped delegate is a key with limited authority. The program reads the oracle 
 
 Positions have no funding payment and no time limit. Notional is margin multiplied by leverage. A $100 margin at 200× creates $20,000 of synthetic exposure. The house records this exposure in its ledger. The program does not buy $20,000 on Phoenix.
 
-The notional limit is $250,000 per position, with a $1 minimum margin. The original design allowed $10 million. An owner can hold several positions. No aggregate credit ceiling or profit cap applies.
+The notional limit is $10 million per position, with a $1 minimum margin. An owner can hold several positions. No aggregate credit ceiling or profit cap applies.
 
 ## Settle a winning position
 

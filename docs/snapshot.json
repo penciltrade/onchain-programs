@@ -12,7 +12,7 @@
     {
       "file": "02-trading.md",
       "title": "Follow the trading rules",
-      "sha256": "27d45e32abf51227d1f7140e24cb2de57cadfe7fb0ef75623c54ac1860d538eb",
+      "sha256": "38cd495600ee166c82d70b6b38c1df65b68426a45c89b2c486e0fca5620a9f19",
       "portableChanges": []
     },
     {
@@ -30,7 +30,7 @@
     {
       "file": "05-ownership.md",
       "title": "Manage PENCIL",
-      "sha256": "509d6507835ab4a33b002e1e1ca7e5474f30d90824505ce57ec9afd1b481fc11",
+      "sha256": "bd8730d4140ad67f665d218f97c14a22e64802f09d0085b597992775aa5aa811",
       "portableChanges": []
     },
     {
@@ -42,7 +42,7 @@
     {
       "file": "07-programs.md",
       "title": "Use the programs",
-      "sha256": "9c51d4a1b58b559511b7ba0d172deaa11b363e70999171286ab20a136ea5b454",
+      "sha256": "580775fe5f1e4475ad59b959e45d8446249849ba5995b867c5a35d5780914481",
       "portableChanges": []
     },
     {
@@ -80,7 +80,7 @@
     {
       "file": "immutable-release.md",
       "title": "Release immutable code",
-      "sha256": "3f18fb0cce6717259e59eef49e41dc7134a6e0b74128e622b9b5b37ab72dfa7a",
+      "sha256": "dd8d0158a1d4c30f3620d21691b3624e105cc86ff0bbbd4d2b92a995603dc1d9",
       "portableChanges": []
     },
     {

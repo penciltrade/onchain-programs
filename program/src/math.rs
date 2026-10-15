@@ -1,18 +1,17 @@
 use solana_program::program_error::ProgramError;
 pub const USDC: u64 = 1_000_000;
-pub const FLAT_THRESHOLD: i128 = 2_000_000 * USDC as i128;
+pub const FLAT_THRESHOLD: i128 = 500_000 * USDC as i128;
 pub const LP_PROFIT_BUFFER: i128 = 5_000 * USDC as i128;
-/// The marginal share starts at 8%, then rises linearly from $100k to $1M.
-pub const LP_CURVE_START: i128 = 100_000 * USDC as i128;
+/// The marginal share follows 8% + 32% * (equity / $1M)^2.
+pub const LP_CURVE_START: i128 = 0;
 pub const LP_CURVE_END: i128 = 1_000_000 * USDC as i128;
 pub const LP_STAKER_START_BPS: u128 = 800;
-pub const LP_STAKER_SHARE_CAP_BPS: u128 = 9_900;
-const LP_CURVE_SPAN: u128 = (LP_CURVE_END - LP_CURVE_START) as u128;
+pub const LP_STAKER_SHARE_CAP_BPS: u128 = 4_000;
+const LP_SQRT_RATIO: u128 = 589_767_824_619_588_533; // floor(sqrt(8/23) * 1e18)
 const LP_LOG_SCALE: u128 = 1_000_000_000_000_000_000;
 const LN_2: u128 = 693_147_180_559_945_309;
 /// Entry-normalized long notional. Rounding always increases the reserve.
 pub const EXPOSURE_SCALE: u128 = 1_000_000_000_000;
-pub const TAIL_SCALE: u128 = 120_000_000 * USDC as u128;
 pub fn u64_checked(x: u128) -> Result<u64, ProgramError> {
     u64::try_from(x).map_err(|_| ProgramError::ArithmeticOverflow)
 }
@@ -25,6 +24,7 @@ pub fn mul_div(a: u64, b: u64, d: u64) -> Result<u64, ProgramError> {
 
 // Fixed-point natural logarithm for ratios in [1,92]. Range reduction
 // leaves y <= 1/3; 24 terms bound truncation well below one USDC atom.
+#[inline(never)]
 fn lp_ln(mut ratio: u128) -> u128 {
     let mut powers = 0;
     while ratio >= 2 * LP_LOG_SCALE {
@@ -44,20 +44,19 @@ fn lp_ln(mut ratio: u128) -> u128 {
 
 // Integral of 1/(1-share(E)). Its inverse gives retained equity, so splitting
 // a profit event cannot change its economic allocation except atom rounding.
+#[inline(never)]
 fn lp_profit_potential(equity: u128) -> u128 {
-    let below = equity.min(LP_CURVE_START as u128) - LP_PROFIT_BUFFER as u128;
-    let early = below * 10_000 / (10_000 - LP_STAKER_START_BPS);
-    let x = equity
-        .saturating_sub(LP_CURVE_START as u128)
-        .min(LP_CURVE_SPAN);
-    let denominator = 9_200 * LP_CURVE_SPAN - 9_100 * x;
-    let ratio = 9_200 * LP_CURVE_SPAN * LP_LOG_SCALE / denominator;
-    let rising = LP_CURVE_SPAN * 10_000 * lp_ln(ratio) / (9_100 * LP_LOG_SCALE);
-    early + rising + equity.saturating_sub(LP_CURVE_END as u128) * 100
+    let capped = equity.min(LP_CURVE_END as u128);
+    let x = LP_SQRT_RATIO * capped / LP_CURVE_END as u128;
+    let ratio = (LP_LOG_SCALE + x) * LP_LOG_SCALE / (LP_LOG_SCALE - x);
+    // Integral of 1/(.92-.32*(E/M)^2), anchored at zero.
+    LP_CURVE_END as u128 * 25 * lp_ln(ratio) / (46 * LP_SQRT_RATIO)
+        + equity.saturating_sub(LP_CURVE_END as u128) * 5 / 3
 }
 
 // A lower bound on exp(-x), x <= ln(92). Reduce to <=1/8, use the
 // odd Taylor partial sum, subtract a bound for integer rounding, then square.
+#[inline(never)]
 fn lp_exp_neg_lower(mut x: u128) -> u128 {
     let mut powers = 0;
     while x > LP_LOG_SCALE / 8 {
@@ -86,14 +85,15 @@ pub fn lp_staker_share_bps(equity: i128) -> Result<u64, ProgramError> {
         return Ok(0);
     }
     u64_checked(equity as u128)?;
-    let x = equity.saturating_sub(LP_CURVE_START).max(0) as u128;
+    let x = (equity as u128).min(LP_CURVE_END as u128);
     Ok((LP_STAKER_START_BPS
-        + (LP_STAKER_SHARE_CAP_BPS - LP_STAKER_START_BPS) * x.min(LP_CURVE_SPAN) / LP_CURVE_SPAN)
-        as u64)
+        + (LP_STAKER_SHARE_CAP_BPS - LP_STAKER_START_BPS) * x * x
+            / (LP_CURVE_END as u128 * LP_CURVE_END as u128)) as u64)
 }
 
-/// Integrate the 8%-99% marginal share over new, funded profit. Repay the
-/// deficit and $5k buffer first. Existing capital never enters the split.
+/// Integrate the quadratic share over funded profit after the $5k buffer.
+/// Closed-form inversion bounds work independently of profit and LP size.
+#[inline(never)]
 pub fn lp_profit_share(before: i128, profit: u64) -> Result<u64, ProgramError> {
     let bootstrap =
         (LP_PROFIT_BUFFER.saturating_sub(before).max(0) as u128).min(profit as u128) as u64;
@@ -104,41 +104,25 @@ pub fn lp_profit_share(before: i128, profit: u64) -> Result<u64, ProgramError> {
     let start = before.max(LP_PROFIT_BUFFER) as u128;
     u64_checked(start)?;
     if start >= LP_CURVE_END as u128 {
-        return Ok(shareable - ((shareable as u128 + 99) / 100) as u64);
+        return Ok(shareable - ((shareable as u128 * 3 + 4) / 5) as u64);
     }
-    let initial = lp_profit_potential(start);
-    let cap_cost = lp_profit_potential(LP_CURVE_END as u128) - initial;
-    if shareable as u128 >= cap_cost {
-        let retained = LP_CURVE_END as u128 - start + (shareable as u128 - cap_cost + 99) / 100;
-        return Ok(shareable - u64_checked(retained)?);
+    let cost = lp_profit_potential(LP_CURVE_END as u128) - lp_profit_potential(start);
+    if shareable as u128 >= cost {
+        let retained = LP_CURVE_END as u128 - start + ((shareable as u128 - cost) * 3 + 4) / 5;
+        return Ok(shareable - u64_checked(retained.min(shareable as u128))?);
     }
-    let mut retained = 0u128;
-    let mut remaining = shareable as u128;
-    let mut curve_start = start;
-    if start < LP_CURVE_START as u128 {
-        let early_cost = lp_profit_potential(LP_CURVE_START as u128) - initial;
-        if remaining <= early_cost {
-            // Invert floor((E-buffer)*10000/9200) exactly.
-            let target = initial + remaining;
-            retained = (target * 9_200 + 9_999) / 10_000 + LP_PROFIT_BUFFER as u128 - start;
-            return Ok(shareable - u64_checked(retained)?);
-        }
-        retained = LP_CURVE_START as u128 - start;
-        remaining -= early_cost;
-        curve_start = LP_CURVE_START as u128;
-    }
-    // Closed-form inverse of the logarithmic integral avoids a binary search
-    // (and repeated logarithms) on the compute-limited execution path.
-    let x = curve_start - LP_CURVE_START as u128;
-    let retention_numerator = 9_200 * LP_CURVE_SPAN - 9_100 * x;
-    let exponent_numerator = remaining * 9_100 * LP_LOG_SCALE;
-    let exponent_denominator = 10_000 * LP_CURVE_SPAN;
-    let exponent = (exponent_numerator + exponent_denominator - 1) / exponent_denominator;
+    let x = LP_SQRT_RATIO * start / LP_CURVE_END as u128;
+    let denominator = 25 * LP_CURVE_END as u128;
+    let exponent = (shareable as u128 * 46 * LP_SQRT_RATIO + denominator - 1) / denominator;
     let exponential = lp_exp_neg_lower(exponent);
-    let numerator = retention_numerator * (LP_LOG_SCALE - exponential);
-    let denominator = 9_100 * LP_LOG_SCALE;
-    retained += (numerator + denominator - 1) / denominator;
-    Ok(shareable - u64_checked(retained.min(shareable as u128))?)
+    let denominator = LP_LOG_SCALE + x + (LP_LOG_SCALE - x) * exponential / LP_LOG_SCALE;
+    let numerator = (LP_LOG_SCALE - x * x / LP_LOG_SCALE) * (LP_LOG_SCALE - exponential);
+    let delta = (numerator + denominator - 1) / denominator;
+    // One additional atom covers fixed-point error in the inverse. Rounding
+    // retains cash; it cannot export existing capital or exceed funded profit.
+    let retained = ((LP_CURVE_END as u128 * delta + LP_SQRT_RATIO - 1) / LP_SQRT_RATIO + 1)
+        .min(shareable as u128);
+    Ok(shareable - u64_checked(retained)?)
 }
 
 /// Upper bound on gross winning profit (net payout plus trading fee).
@@ -327,186 +311,289 @@ pub fn pnl(
     let fee = adjusted / 50;
     Ok((true, u64_checked(adjusted - fee)?, u64_checked(fee)?))
 }
+// 16-point Gauss-Legendre nodes and weights on [0,1], scaled by 1e18.
+// Split at the flat threshold and LP cap before quadrature. On each smooth
+// interval the nearest pole is outside the interval. No float runs onchain.
+const GAUSS: [(u128, u128); 16] = [
+    (5299532504175033, 13576229705877047),
+    (27712488463383711, 31126761969323946),
+    (67184398806084128, 47579255841246392),
+    (122297795822498483, 62314485627766936),
+    (191061877798678125, 74797994408288366),
+    (270991611171386306, 84578259697501269),
+    (359198224610370543, 91301707522461794),
+    (452493745081181279, 94725305227534248),
+    (547506254918818720, 94725305227534248),
+    (640801775389629456, 91301707522461794),
+    (729008388828613693, 84578259697501269),
+    (808938122201321874, 74797994408288366),
+    (877702204177501516, 62314485627766936),
+    (932815601193915871, 47579255841246392),
+    (972287511536616288, 31126761969323946),
+    (994700467495824966, 13576229705877051),
+];
+
+#[inline(never)]
+fn plain_integral(start: i128, gain: u64) -> Result<u128, ProgramError> {
+    let flat = if start < FLAT_THRESHOLD {
+        FLAT_THRESHOLD.saturating_sub(start).min(gain as i128) as u64
+    } else {
+        0
+    };
+    // An all-flat event uses the direct rate branch, including i128::MIN.
+    let flat_part = (flat as u128)
+        .checked_mul(100 * LP_LOG_SCALE)
+        .ok_or(ProgramError::ArithmeticOverflow)?;
+    let delta = (gain - flat) as u128;
+    if delta == 0 {
+        return Ok(flat_part);
+    }
+    let a = start.max(FLAT_THRESHOLD) as u128;
+    u64_checked(a)?;
+    let c = FLAT_THRESHOLD as u128 * 100;
+    let tail = if delta <= a / 1_000_000 {
+        // Stable for tiny changes at large LP. Integrated midpoint error is
+        // less than C * (delta/a)^3 / 12, below 0.000005 credit atoms.
+        delta * (2 * c * LP_LOG_SCALE / (2 * a + delta))
+    } else {
+        c * lp_ln((a + delta) * LP_LOG_SCALE / a)
+    };
+    flat_part
+        .checked_add(tail)
+        .ok_or(ProgramError::ArithmeticOverflow)
+}
+
+#[inline(never)]
+fn curve_integrals(start: u128, end: u128, offset: u128) -> (u128, u128) {
+    let width = end - start;
+    let mut cost = 0;
+    let mut reward = 0;
+    for (node, weight) in GAUSS {
+        let x = start * LP_LOG_SCALE / LP_CURVE_END as u128 + width * node / LP_CURVE_END as u128;
+        let retention = (9_200 * LP_LOG_SCALE - 3_200 * (x * x / LP_LOG_SCALE)) / 10_000;
+        let inverse = LP_LOG_SCALE * LP_LOG_SCALE / retention;
+        let tracked = offset * LP_LOG_SCALE / LP_CURVE_END as u128 + x;
+        let rate = if tracked <= LP_LOG_SCALE / 2 {
+            100 * LP_LOG_SCALE
+        } else {
+            50 * LP_LOG_SCALE * LP_LOG_SCALE / tracked
+        };
+        cost += inverse * weight / LP_LOG_SCALE;
+        reward += (rate * LP_LOG_SCALE / retention) * weight / LP_LOG_SCALE;
+    }
+    (width * cost, width * reward)
+}
+
+#[inline(never)]
+fn shared_average(start: u128, end: u128, offset: u128) -> Result<u128, ProgramError> {
+    if start == end {
+        return Ok(100 * LP_LOG_SCALE * FLAT_THRESHOLD as u128
+            / (start + offset).max(FLAT_THRESHOLD as u128));
+    }
+    let mut at = start;
+    let mut cost = 0u128;
+    let mut reward = 0u128;
+    if at < LP_PROFIT_BUFFER as u128 {
+        let next = end.min(LP_PROFIT_BUFFER as u128);
+        let width = u64_checked(next - at)?;
+        cost += width as u128 * LP_LOG_SCALE;
+        reward += plain_integral(
+            i128::try_from(at + offset).map_err(|_| ProgramError::ArithmeticOverflow)?,
+            width,
+        )?;
+        at = next;
+    }
+    // Split the only kink inside the quadratic interval.
+    let flat_end = (FLAT_THRESHOLD as u128).saturating_sub(offset);
+    for boundary in [flat_end.min(LP_CURVE_END as u128), LP_CURVE_END as u128] {
+        let next = end.min(boundary);
+        if next > at {
+            let (c, r) = curve_integrals(at, next, offset);
+            cost += c;
+            reward += r;
+            at = next;
+        }
+    }
+    if end > at {
+        let width = u64_checked(end - at)?;
+        cost += width as u128 * LP_LOG_SCALE * 5 / 3;
+        reward += plain_integral(
+            i128::try_from(at + offset).map_err(|_| ProgramError::ArithmeticOverflow)?,
+            width,
+        )? * 5
+            / 3;
+    }
+    Wide::product(reward, LP_LOG_SCALE)
+        .divide(Wide::from_u128(cost))?
+        .as_u128()
+}
+
 pub fn emission(
     basis: u64,
     lp_gain: u64,
-    tracked_before: i128,
-    highwater: &mut u64,
+    before: i128,
+    legacy: &mut u64,
 ) -> Result<u64, ProgramError> {
-    // Integrate the curve through a loss, splitting at $2M and apportioning basis
-    // by LP gain. Below $2M the original flat branch applies again; the tail's
-    // high-water accumulator is retained and never decreases.
-    if basis == 0 {
-        return Ok(0);
-    }
-    let flat_gain = if tracked_before < FLAT_THRESHOLD {
-        FLAT_THRESHOLD
-            .saturating_sub(tracked_before)
-            .min(lp_gain as i128) as u64
-    } else {
-        0
-    };
-    emission_split(basis, lp_gain, tracked_before, flat_gain, highwater)
+    emission_with_allocation(basis, lp_gain, before, None, legacy)
 }
 
-/// `share_from` is the equity level at which this gain starts to be shared:
-/// the settlement's opening equity, or the LP high-water mark when that is
-/// higher. Equity below it is regained one for one.
 pub fn emission_with_lp_profit_share(
     basis: u64,
-    lp_gain: u64,
-    tracked_before: i128,
+    gain: u64,
+    before: i128,
     share_from: i128,
-    highwater: &mut u64,
+    legacy: &mut u64,
 ) -> Result<u64, ProgramError> {
-    let flat_gain = if tracked_before >= FLAT_THRESHOLD {
-        0
-    } else {
-        let base = share_from.max(tracked_before).min(FLAT_THRESHOLD);
-        // Unshared regain up to the base, then the integrated profit cost of
-        // lifting actual equity from the base to the flat threshold.
-        let unshared = base.saturating_sub(tracked_before).max(0) as u128;
-        let cost = if base >= FLAT_THRESHOLD {
-            0
-        } else {
-            let bootstrap = LP_PROFIT_BUFFER.saturating_sub(base).max(0) as u128;
-            let start = base.max(LP_PROFIT_BUFFER) as u128;
-            let end = FLAT_THRESHOLD as u128;
-            bootstrap + lp_profit_potential(end) - lp_profit_potential(start)
-        };
-        unshared.saturating_add(cost).min(lp_gain as u128) as u64
-    };
-    // Tail progress remains gross eligible LP gain, as before. The allocation
-    // curve changes how much profit is needed to reach actual $2M equity.
-    emission_split(basis, lp_gain, tracked_before, flat_gain, highwater)
+    let base = share_from.max(before).max(0);
+    emission_with_allocation(
+        basis,
+        gain,
+        before,
+        Some((base, before.saturating_sub(base))),
+        legacy,
+    )
 }
 
-fn emission_split(
+/// `origin` is recognized profit at zero new gain. A negative value means
+/// equity first recovers an earlier peak or exposure reserve. Positive values
+/// release previously funded profit before integrating this settlement's gain.
+/// The legacy tail field remains untouched for funded-state compatibility.
+#[inline(never)]
+pub fn emission_with_allocation(
     basis: u64,
-    lp_gain: u64,
-    tracked_before: i128,
-    flat_gain: u64,
-    highwater: &mut u64,
+    gain: u64,
+    before: i128,
+    allocation: Option<(i128, i128)>,
+    _legacy: &mut u64,
 ) -> Result<u64, ProgramError> {
     if basis == 0 {
         return Ok(0);
     }
-    let flat_basis = if lp_gain == 0 {
-        if tracked_before < FLAT_THRESHOLD {
-            basis
+    if gain == 0 {
+        let denominator = before.max(FLAT_THRESHOLD) as u128;
+        return u64_checked(
+            Wide::product(basis as u128, 100 * FLAT_THRESHOLD as u128)
+                .divide(Wide::from_u128(denominator))?
+                .as_u128()?,
+        );
+    }
+    let end = before
+        .checked_add(gain as i128)
+        .ok_or(ProgramError::ArithmeticOverflow)?;
+    if end <= FLAT_THRESHOLD {
+        return u64_checked(basis as u128 * 100);
+    }
+    let average = if let Some((base, origin)) = allocation {
+        if base < 0 || before.saturating_sub(base).saturating_sub(origin) < 0 {
+            return Err(ProgramError::InvalidArgument);
+        }
+        let prefix = origin.saturating_neg().max(0).min(gain as i128) as u64;
+        let remaining = gain - prefix;
+        if remaining == 0 {
+            plain_integral(before, gain)? / gain as u128
         } else {
-            0
+            let recognized = origin.max(0) as u128;
+            let total = u64_checked(recognized + remaining as u128)?;
+            let start = base as u128 + recognized
+                - lp_profit_share(base, u64_checked(recognized)?)? as u128;
+            let end = base as u128 + total as u128 - lp_profit_share(base, total)? as u128;
+            let offset = (before - base - origin) as u128;
+            let shared = shared_average(start, end, offset)?;
+            let early = if prefix > 0 {
+                plain_integral(before, prefix)?
+            } else {
+                0
+            };
+            (remaining as u128)
+                .checked_mul(shared)
+                .and_then(|v| v.checked_add(early))
+                .ok_or(ProgramError::ArithmeticOverflow)?
+                / gain as u128
         }
     } else {
-        mul_div(basis, flat_gain, lp_gain)?
+        plain_integral(before, gain)? / gain as u128
     };
-    let tail_basis = basis - flat_basis;
-    let tail_gain = lp_gain - flat_gain;
-    let next_highwater = highwater
-        .checked_add(tail_gain)
-        .ok_or(ProgramError::ArithmeticOverflow)?;
-    let a = TAIL_SCALE + *highwater as u128;
-    let b = TAIL_SCALE + next_highwater as u128;
-    let tail = Wide::product(tail_basis as u128, TAIL_SCALE * TAIL_SCALE)
-        .times_small(100)?
-        .divide(Wide::product(a, b))?
-        .as_u128()?;
-    let minted = u64_checked(flat_basis as u128 * 100 + tail)?;
-    // Preserve caller state if arithmetic cannot be represented.
-    *highwater = next_highwater;
-    Ok(minted)
+    u64_checked(
+        Wide::product(basis as u128, average)
+            .divide(Wide::from_u128(LP_LOG_SCALE))?
+            .as_u128()?,
+    )
 }
 #[cfg(test)]
 mod tests {
     use super::*;
     #[test]
-    fn lp_share_has_selected_anchors_and_monotone_bounds() {
-        for (equity, bps) in [
+    fn quadratic_share_anchors_and_cash_domain() {
+        for (dollars, bps) in [
             (0, 0),
             (4999, 0),
             (5000, 800),
-            (100000, 800),
-            (550000, 5350),
-            (1000000, 9900),
-            (200000000, 9900),
+            (100000, 832),
+            (250000, 1000),
+            (500000, 1600),
+            (750000, 2600),
+            (1000000, 4000),
+            (5000000, 4000),
         ] {
-            assert_eq!(lp_staker_share_bps(equity * USDC as i128).unwrap(), bps);
+            assert_eq!(lp_staker_share_bps(dollars * USDC as i128).unwrap(), bps);
         }
-        let mut last = 0;
-        for equity in (0..=2_000_000).step_by(1000) {
-            let rate = lp_staker_share_bps(equity * USDC as i128).unwrap();
-            assert!(rate >= last && rate <= 9900);
-            last = rate;
-        }
-        assert_eq!(lp_staker_share_bps(u64::MAX as i128).unwrap(), 9900);
-    }
-    #[test]
-    fn lp_profit_refills_buffer_and_never_exports_existing_capital() {
-        assert_eq!(
-            lp_profit_share(-100 * USDC as i128, 5100 * USDC).unwrap(),
-            0
-        );
-        assert_eq!(lp_profit_share(0, 5000 * USDC).unwrap(), 0);
-        assert_eq!(lp_profit_share(0, 6000 * USDC).unwrap(), 80 * USDC);
+        assert_eq!(lp_staker_share_bps(u64::MAX as i128).unwrap(), 4000);
+        assert!(lp_staker_share_bps(u64::MAX as i128 + 1).is_err());
         assert_eq!(lp_profit_share(i128::MIN, u64::MAX).unwrap(), 0);
-        assert_eq!(lp_profit_share(10_000_000 * USDC as i128, 0).unwrap(), 0);
-        assert_eq!(
-            lp_profit_share(LP_PROFIT_BUFFER, 100 * USDC).unwrap(),
-            8 * USDC
-        );
-        assert_eq!(
-            lp_profit_share(LP_CURVE_END, 100 * USDC).unwrap(),
-            99 * USDC
-        );
-        assert_eq!(
-            lp_profit_share(LP_CURVE_END, 480 * USDC).unwrap(),
-            475_200_000
-        );
+        let got = lp_profit_share(LP_CURVE_END, u64::MAX).unwrap();
+        assert_eq!(u64::MAX - got, ((u64::MAX as u128 * 3 + 4) / 5) as u64);
+    }
+    fn retained_reference(before: f64, profit: f64) -> f64 {
+        let bootstrap = (5000.0 * USDC as f64 - before).max(0.0).min(profit);
+        let mut left = profit - bootstrap;
+        let mut at = before + bootstrap;
+        let initial = at;
+        if at < 1e12 && left > 0.0 {
+            let q = (8.0f64 / 23.0).sqrt();
+            let cost = 1e12 / (0.92 * q) * (q.atanh() - (q * at / 1e12).atanh());
+            if left >= cost {
+                at = 1e12;
+                left -= cost;
+            } else {
+                at = 1e12 / q * ((q * at / 1e12).atanh() + 0.92 * q * left / 1e12).tanh();
+                left = 0.0;
+            }
+        }
+        bootstrap + at - initial + left * 0.6
     }
     #[test]
-    fn lp_profit_integral_matches_independent_logarithmic_reference() {
-        let span = 900_000.0 * USDC as f64;
-        let beta = 0.91 / span;
-        for before in [5000, 30000, 100000, 550000, 999999, 1000000, 5000000] {
+    fn quadratic_integral_matches_independent_hyperbolic_reference() {
+        for before in [
+            -1000, 0, 4999, 5000, 30000, 100000, 250000, 500000, 750000, 999999, 1000000, 5000000,
+        ] {
             for profit in [1, 100, 10000, 1000000, 100000000] {
-                let mut p = profit as f64 * USDC as f64;
-                let mut equity = before as f64 * USDC as f64;
-                let start = equity;
-                if equity < 100000.0 * USDC as f64 {
-                    let retained = (100000.0 * USDC as f64 - equity).min(p * 0.92);
-                    equity += retained;
-                    p -= retained / 0.92;
-                }
-                if p > 0.0 && equity < 1000000.0 * USDC as f64 {
-                    let retention = 0.92 - beta * (equity - 100000.0 * USDC as f64);
-                    let cost = (retention / 0.01).ln() / beta;
-                    let used = p.min(cost);
-                    equity += retention * (-(-beta * used).exp_m1()) / beta;
-                    p -= used;
-                }
-                equity += p * 0.01;
-                let got =
-                    profit * USDC - lp_profit_share(before * USDC as i128, profit * USDC).unwrap();
+                let b = before * USDC as i128;
+                let p = profit * USDC;
+                let retained = p - lp_profit_share(b, p).unwrap();
+                let reference = retained_reference(b as f64, p as f64);
                 assert!(
-                    (got as f64 - (equity - start)).abs() < 3.0,
-                    "before={before},profit={profit},got={got},reference={}",
-                    equity - start
+                    (retained as f64 - reference).abs() < 5.0,
+                    "before={before},profit={profit}: {retained} vs {reference}"
+                );
+                assert!(
+                    retained as f64 + 0.01 >= reference,
+                    "rounding must retain cash"
                 );
             }
         }
     }
     #[test]
-    fn lp_allocation_splitting_changes_only_atomic_rounding() {
+    fn allocation_splits_change_only_atomic_rounding() {
         for before in [
-            0, 1000, 5000, 100000, 550000, 999999, 1000000, 5000000, 200000000,
+            0, 1000, 5000, 100000, 500000, 750000, 999999, 1000000, 5000000,
         ] {
             let initial = before * USDC as i128;
             let profit = 6_000_000 * USDC;
             let whole = profit - lp_profit_share(initial, profit).unwrap();
             let mut split = 0;
             for _ in 0..100 {
-                let part = profit / 100;
-                split += part - lp_profit_share(initial + split as i128, part).unwrap();
+                let p = profit / 100;
+                split += p - lp_profit_share(initial + split as i128, p).unwrap();
             }
             assert!(
                 whole.abs_diff(split) < 300,
@@ -515,45 +602,92 @@ mod tests {
         }
     }
     #[test]
-    fn lp_maximum_profit_and_retention_floor_are_safe() {
-        let before = 200_000_000 * USDC as i128;
-        assert_eq!(lp_profit_share(before, 100 * USDC).unwrap(), 99 * USDC);
-        let share = lp_profit_share(before, u64::MAX).unwrap();
-        let kept = (u64::MAX - share) as u128;
-        let exact = (u64::MAX as u128 + 99) / 100;
-        assert_eq!(kept, exact);
-        assert_eq!(winning_reserve(0, 0, 0).unwrap(), 0);
-        assert_eq!(winning_reserve(1, 0, 0).unwrap(), u64::MAX);
-        assert_eq!(winning_reserve(u128::MAX, 0, u64::MAX).unwrap(), u64::MAX);
-        assert_eq!(winning_reserve(0, u128::MAX, 1).unwrap(), u64::MAX);
+    fn emission_follows_lp_drawdowns_and_ignores_legacy_tail() {
+        for dollars in [500000u64, 1000000, 2000000, 5000000] {
+            let mut legacy = u64::MAX;
+            let got = emission(USDC, 0, dollars as i128 * USDC as i128, &mut legacy).unwrap();
+            assert_eq!(got, 100 * USDC * 500000 / dollars);
+            assert_eq!(legacy, u64::MAX);
+        }
+        for before in [i128::MIN, -1, 0, FLAT_THRESHOLD - 1, FLAT_THRESHOLD] {
+            let mut legacy = 123;
+            assert_eq!(emission(USDC, 0, before, &mut legacy).unwrap(), 100 * USDC);
+            assert_eq!(legacy, 123);
+        }
+        let mut legacy = 123;
+        let above = emission(1_000_000_000, 0, FLAT_THRESHOLD + 1, &mut legacy).unwrap();
+        assert_eq!(above, 99_999_999_999);
+        assert!(emission(u64::MAX, 0, 0, &mut legacy).is_err());
+        assert_eq!(legacy, 123);
     }
     #[test]
-    fn lp_emission_crossing_uses_actual_equity_without_event_size_bonus() {
-        let initial = LP_PROFIT_BUFFER;
-        let profit = 110_000_000 * USDC;
-        let mut whole_h = 0;
-        let whole =
-            emission_with_lp_profit_share(profit, profit, initial, initial, &mut whole_h).unwrap();
-        let mut equity = initial;
-        let mut split_h = 0;
-        let mut split = 0u64;
-        for _ in 0..100 {
-            let part = profit / 100;
-            split +=
-                emission_with_lp_profit_share(part, part, equity, equity, &mut split_h).unwrap();
-            equity += (part - lp_profit_share(equity, part).unwrap()) as i128;
+    fn hyperbolic_emission_matches_logarithmic_reference_and_event_splits() {
+        for before in [-1000, 0, 499999, 500000, 1000000, 5000000] {
+            for dollars in [1u64, 10000, 1000000, 10000000] {
+                let b = before * USDC as i128;
+                let gain = dollars * USDC;
+                let mut legacy = 55;
+                let got = emission(gain, gain, b, &mut legacy).unwrap();
+                let flat = (FLAT_THRESHOLD - b).max(0).min(gain as i128) as f64;
+                let start = (b as f64 + flat).max(FLAT_THRESHOLD as f64);
+                let reference = flat * 100.0 + 50e12 * ((gain as f64 - flat) / start).ln_1p();
+                assert!(
+                    (got as f64 - reference).abs() < 2.0,
+                    "before={before},gain={gain}"
+                );
+                let mut sum = 0;
+                for i in 0..100 {
+                    sum += emission(
+                        gain / 100,
+                        gain / 100,
+                        b + (gain / 100 * i) as i128,
+                        &mut legacy,
+                    )
+                    .unwrap();
+                }
+                assert!(sum.abs_diff(got) <= 110);
+                assert_eq!(legacy, 55);
+            }
         }
-        assert!(whole_h.abs_diff(split_h) < 900);
-        assert!(whole.abs_diff(split) < 90_100);
-        assert!(equity > FLAT_THRESHOLD);
-        let below_profit = 2_100_000 * USDC;
-        let mut h = 0;
-        assert_eq!(
-            emission_with_lp_profit_share(below_profit, below_profit, initial, initial, &mut h)
-                .unwrap(),
-            below_profit * 100
-        );
-        assert_eq!(h, 0, "Sharing keeps actual equity below $2M at this profit");
+    }
+    #[test]
+    fn shared_emission_crossings_and_reserve_offsets_are_batch_stable() {
+        for before in [0, 499999, 500000, 750000, 999999, 1000000, 5000000] {
+            for reserve in [0, 100000, 500000, 2000000] {
+                let initial = before * USDC as i128;
+                let base = (initial - reserve * USDC as i128).max(0);
+                let origin = initial - reserve * USDC as i128 - base;
+                let gain = 10_000_000 * USDC;
+                let mut legacy = 999;
+                let whole = emission_with_allocation(
+                    gain,
+                    gain,
+                    initial,
+                    Some((base, origin)),
+                    &mut legacy,
+                )
+                .unwrap();
+                let mut split = 0;
+                let mut tracked = initial;
+                let mut mark = base;
+                for _ in 0..100 {
+                    let p = gain / 100;
+                    let origin = tracked - reserve * USDC as i128 - mark;
+                    split +=
+                        emission_with_allocation(p, p, tracked, Some((mark, origin)), &mut legacy)
+                            .unwrap();
+                    let share = lp_profit_share(mark, (origin + p as i128).max(0) as u64).unwrap();
+                    tracked += p as i128 - share as i128;
+                    mark = mark.max(tracked - reserve * USDC as i128);
+                }
+                assert!(
+                    whole.abs_diff(split) < 100_000,
+                    "before={before},reserve={reserve},whole={whole},split={split}"
+                );
+                assert!(whole <= gain * 100);
+                assert_eq!(legacy, 999);
+            }
+        }
     }
     #[test]
     fn one_percent_move_preserves_selected_asymmetric_payouts() {
@@ -703,63 +837,69 @@ mod tests {
         }
         assert!(pnl(u64::MAX, 200, 1, u64::MAX, 1, 814598).is_err());
     }
-    #[test]
-    fn mint_curve_crossing_and_irreversible_highwater() {
-        let mut h = 0;
-        assert_eq!(emission(USDC, USDC, 0, &mut h).unwrap(), 100 * USDC);
-        let mut cross_h = 0;
-        let crossed = emission(
-            2 * USDC,
-            2 * USDC,
-            FLAT_THRESHOLD - USDC as i128,
-            &mut cross_h,
-        )
-        .unwrap();
-        assert_eq!(cross_h, USDC);
-        assert_eq!(
-            crossed,
-            100 * USDC + (100u128 * USDC as u128 * TAIL_SCALE / (TAIL_SCALE + USDC as u128)) as u64
-        );
-        let minted =
-            emission(10_000_000 * USDC, 10_000_000 * USDC, FLAT_THRESHOLD, &mut h).unwrap();
-        assert_eq!(
-            minted,
-            (1_000_000_000u128 * USDC as u128 * 120 / 130) as u64
-        );
-        assert_eq!(h, 10_000_000 * USDC);
-        let previous = h;
-        assert_eq!(emission(USDC, USDC, i128::MIN, &mut h).unwrap(), 100 * USDC);
-        assert_eq!(h, previous);
-        assert!(emission(USDC, USDC, FLAT_THRESHOLD, &mut h).unwrap() < 100 * USDC);
+    // Independent adaptive Simpson integration uses floats in native tests only.
+    fn simpson(f: &impl Fn(f64) -> f64, a: f64, b: f64, eps: f64, depth: u8) -> f64 {
+        let m = (a + b) / 2.0;
+        let l = (a + m) / 2.0;
+        let r = (m + b) / 2.0;
+        let whole = (b - a) / 6.0 * (f(a) + 4.0 * f(m) + f(b));
+        let split =
+            (m - a) / 6.0 * (f(a) + 4.0 * f(l) + f(m)) + (b - m) / 6.0 * (f(m) + 4.0 * f(r) + f(b));
+        if depth == 0 || (split - whole).abs() < 15.0 * eps {
+            split + (split - whole) / 15.0
+        } else {
+            simpson(f, a, m, eps / 2.0, depth - 1) + simpson(f, m, b, eps / 2.0, depth - 1)
+        }
     }
     #[test]
-    fn tail_mint_batch_invariance_and_error_atomicity() {
-        let mut single_h = 0;
-        let single = emission(
-            10_000_000 * USDC,
-            10_000_000 * USDC,
-            FLAT_THRESHOLD,
-            &mut single_h,
-        )
-        .unwrap();
-        let mut split_h = 0;
-        let mut split = 0;
-        for _ in 0..10 {
-            split += emission(
-                1_000_000 * USDC,
-                1_000_000 * USDC,
-                FLAT_THRESHOLD,
-                &mut split_h,
-            )
-            .unwrap();
+    fn mint_path_quadrature_matches_independent_adaptive_integral() {
+        for first in [
+            0u64, 5000, 100000, 499999, 500000, 750000, 999999, 1000000, 5000000,
+        ] {
+            for width in [1u64, 100, 500000, 10000000] {
+                for offset in [0u64, 100000, 500000, 1000000, 10000000] {
+                    let last = first + width;
+                    let got = shared_average(
+                        first as u128 * USDC as u128,
+                        last as u128 * USDC as u128,
+                        offset as u128 * USDC as u128,
+                    )
+                    .unwrap() as f64
+                        / LP_LOG_SCALE as f64;
+                    let mut bounds = vec![first as f64 / 1e6, last as f64 / 1e6];
+                    for cut in [0.005, 1.0, 0.5 - offset as f64 / 1e6] {
+                        if cut > bounds[0] && cut < bounds[1] {
+                            bounds.push(cut);
+                        }
+                    }
+                    bounds.sort_by(|a, b| a.partial_cmp(b).unwrap());
+                    let mut cost = 0.0;
+                    let mut reward = 0.0;
+                    for pair in bounds.windows(2) {
+                        let (a, b) = (pair[0], pair[1]);
+                        let unshared = b <= 0.005;
+                        let inv = |x: f64| {
+                            if unshared {
+                                1.0
+                            } else {
+                                1.0 / (0.92 - 0.32 * x.clamp(0.0, 1.0).powi(2))
+                            }
+                        };
+                        let rate = |x: f64| (50.0 / (x + offset as f64 / 1e6)).min(100.0);
+                        cost += simpson(&inv, a, b, 1e-14, 24);
+                        reward += simpson(&|x| rate(x) * inv(x), a, b, 1e-14, 24);
+                    }
+                    let expected = reward / cost;
+                    assert!(
+                        (got - expected).abs() * cost * 1e12 < 5.0,
+                        "first={first},width={width},offset={offset}: {got} vs {expected}"
+                    );
+                }
+            }
         }
-        assert_eq!(single_h, split_h);
-        assert!(single >= split && single - split <= 9);
-        let mut h = u64::MAX;
-        assert!(emission(USDC, USDC, FLAT_THRESHOLD, &mut h).is_err());
-        assert_eq!(h, u64::MAX);
-        let mut flat_h = 0;
-        assert!(emission(u64::MAX, 0, 0, &mut flat_h).is_err());
-        assert_eq!(flat_h, 0);
     }
 }
+
+#[cfg(kani)]
+#[path = "../../formal-verification/harnesses/wide.rs"]
+mod verification;

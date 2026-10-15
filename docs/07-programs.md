@@ -50,7 +50,7 @@ A checkpoint records a price that the program accepts. A bust forfeits margin an
 | 1 | Deposit | Owner. The live deployment must accept deposits before or after Seal. |
 | 2 | Withdraw | Owner with funded available cash. |
 | 3–4 | SetDelegate, RevokeDelegate | Owner. |
-| 5 | Enqueue | Owner or scoped delegate, plus sequencer until public mode. Landing assigns order. The market needs a checkpoint within 120 seconds. Notional cannot exceed $250,000. |
+| 5 | Enqueue | Owner or scoped delegate, plus sequencer until public mode. Landing assigns order. The market needs a checkpoint within 120 seconds. Notional cannot exceed $10 million. |
 | 6 | Drain | Any signer with the exact contiguous FIFO prefix. |
 | 7 | Liquidate | Any signer with a fresh accepted bust price. |
 | 8 | Harvest | Any signer with the funded contiguous claim prefix. After all markets stop and settle, it pays residual house cash to stakers. |

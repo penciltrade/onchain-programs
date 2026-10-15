@@ -1,8 +1,8 @@
 # Manage PENCIL
 
-The emission and LP profit curves below describe the finalized policies for the next program upgrade.
-The frontend marks them as planned. Live balances, earned credits, and accrued rewards still come from the deployed program.
-`GET /v1/config` publishes the finalized models under `pencilPolicies`, with status `pending-program-upgrade`.
+The emission and LP profit curves below define the upgraded program.
+Live balances, earned credits, and accrued rewards come from chain state.
+`GET /v1/config` publishes the finalized models under `pencilPolicies`, with status `active`.
 
 PENCIL is PENCILTRADE's transferable SPL ownership token. Supply starts at zero. No premint, team allocation, VC allocation, airdrop, or vesting schedule exists. Eligible realized losses create token credits for the losing trader. MintRewards converts those credits into SPL tokens. A program-derived address, or PDA, identifies a program-controlled account.
 
@@ -40,12 +40,10 @@ The rate is 100 at $500k, 50 at $1M, 25 at $2M, and 10 at $5M.
 A decrease in tracked LP raises the rate. At or below $500k, the flat rate applies again.
 Eligible realized losses create credits. An LP decrease alone creates no tokens.
 
-The upgrade must integrate the marginal rate through each loss event and split events at $500k.
+The program integrates the marginal rate through each loss event and split events at $500k.
 The integral follows actual tracked LP changes after fees and profit sharing.
 Existing credits remain valid. The new rate does not use cumulative tail progress or impose a fixed total supply cap.
 
-Until the upgrade, the deployed program retains its $2M threshold and the earlier squared tail:
-`100 * (120,000,000 / (120,000,000 + H))^2`, where `H` is cumulative tail progress.
 
 ## Allocate trading fees
 
@@ -80,16 +78,14 @@ s(T) = 0.08 + (0.40 - 0.08) * min(max(T, 0) / 1,000,000, 1)^2
 The base parameter is 8%. The $5,000 buffer withholds distributions below that buffer, even when the marginal formula returns a positive rate.
 The separate share of funded trading fees remains 50% for stakers and 50% for the team.
 
-The upgrade must integrate `1 / (1 - s(T))` to calculate retained equity across each profit event.
-Integer rounding must favor LP retention. Event splitting must change allocation only through small rounding differences in USDC atoms.
+The program integrates `1 / (1 - s(T))` to calculate retained equity across each profit event.
+Integer rounding favors LP retention. Event splitting changes allocation only through small rounding differences in USDC atoms.
 
 Above $1M of distributable equity, an eligible $100 cash loss pays $1 to the team and $1 in staker fees.
 The remaining $98 allocates $39.20 to stakers and retains $58.80 under the finalized curve.
 This example assumes that equity recovery and outstanding exposure do not delay allocation.
 House cash can exceed distributable equity because it covers debt and winning exposure.
 
-Until the program upgrade, the live allocation still rises linearly from 8% at $100k to 99% at $1M.
-The frontend labels that deployed curve separately from the planned curve.
 
 The high-water mark records the highest retained distributable equity. A new position cannot lower it. Profit distribution requires growth above it. Recovery from a previous equity decrease stays in the house.
 

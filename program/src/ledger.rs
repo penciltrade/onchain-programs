@@ -351,10 +351,10 @@ pub fn mint_credit(
     basis: u64,
     lp_gain: u64,
     before: i128,
-    share_from: Option<i128>,
+    share_from: Option<(i128, i128)>,
 ) -> Result<u64, ProgramError> {
-    let amount = if let Some(base) = share_from {
-        math::emission_with_lp_profit_share(basis, lp_gain, before, base, &mut s.tail_highwater)?
+    let amount = if let Some(path) = share_from {
+        math::emission_with_allocation(basis, lp_gain, before, Some(path), &mut s.tail_highwater)?
     } else {
         math::emission(basis, lp_gain, before, &mut s.tail_highwater)?
     };
@@ -393,6 +393,7 @@ pub fn settle_position(
     };
     let before = s.tracked_lp;
     let share_base = lp_share_base(s, distributable_equity(s)?);
+    let pending_before = s.lp_pending_profit;
     let mut minted = 0;
     // Remove locked margin liability before requeueing any surviving debt principal.
     s.positions.remove(pos_index);
@@ -461,13 +462,21 @@ pub fn settle_position(
             // Ineligible growth cannot become a later funded distribution.
             s.lp_pending_profit = 0;
         }
+        let allocation = if profit_sharing && shared > 0 {
+            Some((
+                base,
+                (pending_before as i128).min(before - profit_reserve(s)? as i128 - base),
+            ))
+        } else {
+            None
+        };
         minted = mint_credit(
             s,
             p.owner,
             if bust { value } else { gain },
             gain,
             before,
-            (profit_sharing && shared > 0 && profit_reserve(s)? == 0).then_some(base.max(before)),
+            allocation,
         )?;
         raise_lp_highwater(s)?;
         if p.debt_funded {
@@ -619,7 +628,10 @@ pub(crate) mod tests {
         // $100 of the $980 gain refills the buffer; the other $880 is shared
         // at the starting rate of 8%.
         let shared = s.fee_staker - 60 * math::USDC;
-        assert_eq!(shared, 70_400_000);
+        assert_eq!(
+            shared,
+            math::lp_profit_share(5_000 * math::USDC as i128, 880 * math::USDC).unwrap()
+        );
         assert_eq!(s.house_cash, 5_880 * math::USDC - shared);
         assert_eq!(s.lp_highwater, s.house_cash);
         assert_eq!(s.fee_team, 60 * math::USDC);
@@ -627,7 +639,7 @@ pub(crate) mod tests {
         assert_eq!(expected_vault(&s).unwrap(), vault);
     }
     #[test]
-    fn ninety_nine_percent_share_is_funded_and_attributed_to_active_stakers() {
+    fn forty_percent_share_is_funded_and_attributed_to_active_stakers() {
         let mut s = state();
         let a = Pubkey::new_unique();
         let i = ensure_user(&mut s, a).unwrap();
@@ -639,9 +651,9 @@ pub(crate) mod tests {
         s.positions.push(pos(1, a, 100 * math::USDC, false));
         let vault = expected_vault(&s).unwrap();
         settle_position(&mut s, 0, 99_000_000, 1, true).unwrap();
-        // $1 of fee each, then 99% of the remaining $98.
+        // $1 of fee each, then 40% of the remaining $98.
         assert_eq!(s.fee_team, math::USDC);
-        assert_eq!(s.fee_staker, math::USDC + 97_020_000);
+        assert_eq!(s.fee_staker, math::USDC + 39_200_000);
         settle_rewards(&mut s, i).unwrap();
         assert_eq!(s.users[i].reward_credit, s.fee_staker);
         assert_eq!(expected_vault(&s).unwrap(), vault);

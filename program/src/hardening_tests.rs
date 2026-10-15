@@ -752,19 +752,19 @@ fn enqueue_refuses_an_open_above_the_notional_limit() {
     // Above the limit the terms are invalid. At the limit they are accepted
     // and the order gets as far as the owner's empty cash balance.
     assert_eq!(
-        order(1_250 * USDC + 1, 200),
+        order(50_000 * USDC + 1, 200),
         Err(ProgramError::InvalidArgument)
     );
     assert_eq!(
-        order(250_000 * USDC + 1, 1),
+        order(10_000_000 * USDC + 1, 1),
         Err(ProgramError::InvalidArgument)
     );
     assert_eq!(
-        order(1_250 * USDC, 200),
+        order(50_000 * USDC, 200),
         Err(ProgramError::InsufficientFunds)
     );
     assert_eq!(
-        order(250_000 * USDC, 1),
+        order(10_000_000 * USDC, 1),
         Err(ProgramError::InsufficientFunds)
     );
 }
@@ -1143,11 +1143,11 @@ fn initialize_refuses_a_vault_with_a_delegate_or_close_authority() {
 }
 
 #[test]
-fn position_notional_is_capped_at_a_quarter_million_dollars() {
-    assert!(notional_within_cap(250_000 * USDC, 1));
-    assert!(!notional_within_cap(250_000 * USDC + 1, 1));
-    assert!(notional_within_cap(1_250 * USDC, 200));
-    assert!(!notional_within_cap(1_250 * USDC + 1, 200));
+fn position_notional_is_capped_at_ten_million_dollars() {
+    assert!(notional_within_cap(10_000_000 * USDC, 1));
+    assert!(!notional_within_cap(10_000_000 * USDC + 1, 1));
+    assert!(notional_within_cap(50_000 * USDC, 200));
+    assert!(!notional_within_cap(50_000 * USDC + 1, 200));
     assert!(!notional_within_cap(u64::MAX, 200));
 }
 
@@ -1179,7 +1179,7 @@ fn recovery_and_limit_constants_are_the_reviewed_values() {
     assert_eq!(ORACLE_MIN_SLOTS, 756_000);
     assert_eq!(MAX_MARK_MOVE_BPS, 3_000);
     assert_eq!(ADMISSION_MARK_MAX_AGE, 120);
-    assert_eq!(MAX_NOTIONAL, 250_000 * USDC as u128);
+    assert_eq!(MAX_NOTIONAL, 10_000_000 * USDC as u128);
 }
 
 // ---- Staker profit share ----
@@ -1235,7 +1235,7 @@ fn equity_regained_after_a_payout_is_not_shared_again() {
     assert_eq!(settle_shared(&mut s, 2, 99_000_000, true), 0);
     assert!(s.tracked_lp < 1_000_000 * USDC as i128);
     // The next $1,000 loss crosses the mark. Only the part above it is shared,
-    // at the marginal rate of 99%.
+    // at the capped marginal rate of 40%.
     let below = 1_000_000 * USDC as i128 - s.tracked_lp;
     s.positions.push(pos(3, t, 1_000 * USDC, 1));
     let shared = settle_shared(&mut s, 3, 99_000_000, true);
@@ -1243,7 +1243,7 @@ fn equity_regained_after_a_payout_is_not_shared_again() {
     assert!(above > 0);
     let expected = math::lp_profit_share(1_000_000 * USDC as i128, above).unwrap();
     assert_eq!(shared, expected);
-    assert!(shared.abs_diff(above * 99 / 100) <= 2);
+    assert!(shared.abs_diff(above * 40 / 100) <= 2);
     assert_eq!(s.lp_highwater as i128, s.tracked_lp);
     assert!(s.lp_highwater > 1_000_000 * USDC);
 }
@@ -1324,7 +1324,7 @@ fn emission_measures_the_flat_region_from_the_share_base() {
     let gain = 300_000 * USDC;
     let mut tail = 0;
     let minted = math::emission_with_lp_profit_share(gain, gain, before, mark, &mut tail).unwrap();
-    assert_eq!(tail, 200_000 * USDC, "tail progress past $2M of equity");
+    assert_eq!(tail, 0, "legacy tail counter is reserved");
     let mut plain_tail = 0;
     assert_eq!(
         minted,
@@ -1335,7 +1335,8 @@ fn emission_measures_the_flat_region_from_the_share_base() {
     let mut shared_tail = 0;
     let shared =
         math::emission_with_lp_profit_share(gain, gain, before, before, &mut shared_tail).unwrap();
-    assert!(shared_tail < tail && shared > minted);
+    assert_eq!(shared_tail, 0);
+    assert!(shared > minted);
     // A mark below current equity is the same as no mark.
     let mut low = 0;
     assert_eq!(
@@ -1408,16 +1409,8 @@ fn splitting_a_loss_across_settlements_changes_only_rounding_whatever_the_mark()
             assert_eq!(whole.2, margin / 50 / 2, "{label}");
             assert_eq!(whole.0, (equity + gain) as i128, "{label}");
         }
-        // Tail emissions begin exactly when actual equity passes $2M.
-        let above = whole.0 - math::FLAT_THRESHOLD;
-        if (equity as i128) < math::FLAT_THRESHOLD {
-            assert!(
-                (whole.4 > 0) == (above > 0) || above.abs() <= 110,
-                "boundary: {label}"
-            );
-        } else {
-            assert_eq!(whole.4, gain, "{label}");
-        }
+        assert_eq!(whole.4, 0, "legacy tail counter is reserved");
+        assert!(whole.3 as u128 <= margin as u128 * 100);
     }
 }
 
@@ -1434,7 +1427,7 @@ fn settlement_measures_emission_from_the_mark_not_from_opening_equity() {
     s.positions.push(pos(1, trader, 300_000 * USDC, 1));
     assert_eq!(settle_shared(&mut s, 1, 99_000_000, true), 0);
     assert_eq!(s.tracked_lp, 2_194_000 * USDC as i128);
-    assert_eq!(s.tail_highwater, 194_000 * USDC);
+    assert_eq!(s.tail_highwater, 0);
     let mut tail = 0;
     let expected = math::emission(
         300_000 * USDC,
@@ -1741,4 +1734,49 @@ fn wind_down_settlement_order_cannot_leave_a_winner_unpaid() {
     let (stakers, team, _) = losers_first;
     assert_eq!(team, 0);
     assert!(stakers > 185_000 * USDC && stakers < 187_000 * USDC);
+}
+
+#[test]
+fn ten_million_neutral_pairs_cannot_extract_usdc_at_either_settlement_order() {
+    for equity in [0u64, 5000, 100000, 1000000, 50000000] {
+        for leverage in [1u16, 20, 100, 200] {
+            let margin = 10_000_000 * USDC / leverage as u64;
+            let movement = if leverage >= 100 { 30 } else { 100 };
+            for up in [false, true] {
+                for losers_first in [false, true] {
+                    let (retained, stakers, team) = settle_pairs(
+                        equity * USDC,
+                        4,
+                        margin,
+                        leverage,
+                        movement,
+                        losers_first,
+                        up,
+                    );
+                    let exit = if up {
+                        100_000_000 + 100_000_000 * movement / 10_000
+                    } else {
+                        100_000_000 - 100_000_000 * movement / 10_000
+                    };
+                    let win = math::pnl(
+                        margin,
+                        leverage,
+                        100_000_000,
+                        exit,
+                        if up { 1 } else { -1 },
+                        814598,
+                    )
+                    .unwrap()
+                    .1 * 4;
+                    let loss = 4 * margin * leverage as u64 * movement / 10_000;
+                    assert!(retained >= 0);
+                    assert!(stakers < loss - win);
+                    assert_eq!(
+                        retained + stakers as i128 + team as i128,
+                        (loss - win) as i128
+                    );
+                }
+            }
+        }
+    }
 }

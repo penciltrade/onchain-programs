@@ -23,7 +23,7 @@ pub const ADMISSION_MARK_MAX_AGE: i64 = 120;
 /// Configured multiplier bound across representable prices.
 pub const MAX_POSITION_MULTIPLIER_MILLI: u64 = 1_000_000_000;
 /// Largest single-position notional (margin x leverage), in USDC atoms.
-pub const MAX_NOTIONAL: u128 = 250_000_000_000;
+pub const MAX_NOTIONAL: u128 = 10_000_000_000_000;
 pub const STAKE_WARMUP: i64 = 3600;
 /// Floor on the delayed-governance window outside local mode (24 hours).
 pub const MIN_GOVERNANCE_DELAY: i64 = 86_400;
