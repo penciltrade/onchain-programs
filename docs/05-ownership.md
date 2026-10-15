@@ -1,5 +1,9 @@
 # Manage PENCIL
 
+The emission and LP profit curves below describe the finalized policies for the next program upgrade.
+The frontend marks them as planned. Live balances, earned credits, and accrued rewards still come from the deployed program.
+`GET /v1/config` publishes the finalized models under `pencilPolicies`, with status `pending-program-upgrade`.
+
 PENCIL is PENCILTRADE's transferable SPL ownership token. Supply starts at zero. No premint, team allocation, VC allocation, airdrop, or vesting schedule exists. Eligible realized losses create token credits for the losing trader. MintRewards converts those credits into SPL tokens. A program-derived address, or PDA, identifies a program-controlled account.
 
 The program PDA holds mint authority. PENCIL becomes transferable immediately after minting. Transferability does not guarantee market liquidity. A community can create an AMM pool. An AMM pool lets traders exchange assets through shared liquidity. This release provides no funded pool, token price, or guaranteed buyer.
@@ -24,17 +28,24 @@ Cumulative counters distinguish credits from cash losses and debt losses. These 
 
 ## Calculate emissions
 
-Tracked LP measures equity for emissions and profit allocations. Below $2 million of tracked LP, the rate is 100 PENCIL per $1 of eligible loss. This flat rate also applies to negative equity. Above that threshold, the marginal rate is:
+For emissions, `T` is current tracked LP equity in USDC. The finalized flat rate is 100 PENCIL per eligible USDC through $500k.
+This rate also applies to negative equity. Above $500k, the marginal rate follows a hyperbolic curve with exponent `k = 1`:
 
 ```
-rate(H) = 100 * (120,000,000 / (120,000,000 + H))^2
+r(T) = 100                           when T <= 500,000
+r(T) = 100 * (500,000 / T)^1         when T > 500,000
 ```
 
-`H` records cumulative progress through the tail region. The tail region covers emissions above the threshold. Progress never decreases when LP equity falls or the program distributes cash. The program splits a loss event that crosses $2 million. It integrates the rate across the tail portion instead of applying one endpoint's rate to the whole event. This reduces incentives to split events.
+The rate is 100 at $500k, 50 at $1M, 25 at $2M, and 10 at $5M.
+A decrease in tracked LP raises the rate. At or below $500k, the flat rate applies again.
+Eligible realized losses create credits. An LP decrease alone creates no tokens.
 
-The program apportions differences between the emission basis and tracked gain across that split. Below $2 million of tracked LP, the flat-region rule applies again. Prior tail progress remains for future events in the tail region.
+The upgrade must integrate the marginal rate through each loss event and split events at $500k.
+The integral follows actual tracked LP changes after fees and profit sharing.
+Existing credits remain valid. The new rate does not use cumulative tail progress or impose a fixed total supply cap.
 
-LP profit sharing slows equity growth. A crossing event uses the integrated allocation curve to calculate the profit required to reach actual $2M equity. Tail progress counts eligible LP gain after trading fees and before profit sharing. Splitting a loss or allocating profit to stakers does not reset prior progress. These rules do not establish exact parity with the original deployed code.
+Until the upgrade, the deployed program retains its $2M threshold and the earlier squared tail:
+`100 * (120,000,000 / (120,000,000 + H))^2`, where `H` is cumulative tail progress.
 
 ## Allocate trading fees
 
@@ -50,22 +61,35 @@ No separate frontend or builder allocation exists. The pinned team recipient rec
 
 Funded LP profit contributes to staker rewards after the program reserves outstanding winning exposure. Winning exposure covers possible payouts to open winners. `E` is realized LP equity minus that reserve, in USDC. Any equity deficit and the $5,000 buffer refill before rewards receive profit.
 
-| Distributable equity E | Marginal staker share | Marginal LP retention |
+The finalized curve uses `s_max = 40%` and exponent `p = 2`.
+Here, `T` is distributable LP equity after winning-exposure reserves.
+
+```
+s(T) = 0.08 + (0.40 - 0.08) * min(max(T, 0) / 1,000,000, 1)^2
+```
+
+| Distributable LP equity | Marginal staker share | Marginal LP retention |
 | --- | ---: | ---: |
 | Below $5,000 | 0% | 100% |
-| $5,000 through $100,000 | 8% | 92% |
-| $550,000 | 53.5% | 46.5% |
-| $1M and above | 99% | 1% |
+| $100,000 | 8.32% | 91.68% |
+| $250,000 | 10% | 90% |
+| $500,000 | 16% | 84% |
+| $750,000 | 26% | 74% |
+| $1M and above | 40% | 60% |
 
-Between $100,000 and $1M, the share rises linearly:
+The base parameter is 8%. The $5,000 buffer withholds distributions below that buffer, even when the marginal formula returns a positive rate.
+The separate share of funded trading fees remains 50% for stakers and 50% for the team.
 
-```
-share(E) = 0.08 + 0.91 * (E - 100,000) / 900,000
-```
+The upgrade must integrate `1 / (1 - s(T))` to calculate retained equity across each profit event.
+Integer rounding must favor LP retention. Event splitting must change allocation only through small rounding differences in USDC atoms.
 
-The program integrates `1 / (1 - share(E))` to calculate retained equity for each event. Integer rounding favors LP retention. Event splitting changes allocation only through small rounding differences in USDC atoms. The SDK uses the same integer rules.
+Above $1M of distributable equity, an eligible $100 cash loss pays $1 to the team and $1 in staker fees.
+The remaining $98 allocates $39.20 to stakers and retains $58.80 under the finalized curve.
+This example assumes that equity recovery and outstanding exposure do not delay allocation.
+House cash can exceed distributable equity because it covers debt and winning exposure.
 
-Above $1M of distributable equity, an eligible $100 cash loss pays $1 to the team and $1 in staker fees. The remaining $98 allocates $97.02 to stakers and retains $0.98. This example assumes that equity recovery and outstanding exposure do not delay allocation. Retention remains 1% above $1M, so $1M is no hard maximum on house cash. House cash can exceed distributable equity because it covers debt and winning exposure.
+Until the program upgrade, the live allocation still rises linearly from 8% at $100k to 99% at $1M.
+The frontend labels that deployed curve separately from the planned curve.
 
 The high-water mark records the highest retained distributable equity. A new position cannot lower it. Profit distribution requires growth above it. Recovery from a previous equity decrease stays in the house.
 
@@ -73,7 +97,10 @@ Global market counters include positions funded with cash or debt. They also inc
 
 Shorts reserve 90% of their notional. Longs reserve 90% of their entry-normalized notional at 130% of the last accepted mark. The mark is the oracle's reference trading price. These bounds include the possible winning fee and exceed current winning liability. The long bound also covers the largest next accepted mark increase.
 
-A missing long mark blocks profit sharing. The reserve can delay rewards when leverage is high. Only eligible cash losses add to the funded profit budget awaiting allocation. Winning payouts and their fees consume that budget. A closing winner can release profit held back when the losing leg closed. The 99% rate therefore applies to funded net profit after the reserve, rather than gross paired-position losses.
+A missing long mark blocks profit sharing. The reserve can delay rewards when leverage is high.
+Only eligible cash losses add to the funded profit budget awaiting allocation. Winning payouts and their fees consume that budget.
+A closing winner can release profit held back when the losing leg closed.
+The marginal share applies to funded net profit after the reserve, rather than gross paired-position losses.
 
 A waiting payout queue, no active stake, or an ineligible loss blocks allocation and clears the unallocated budget. An IOU is an unpaid debt obligation. Destroyed IOUs do not add funded profit. Open IOU positions remain in the reserve for winning exposure. Rewards belong to holders active when the deferred allocation occurs. Each holder's saved reward index preserves fees already assigned to that holder.
 
