@@ -1,13 +1,13 @@
 {
   "programId": "PNCL5aincAvxuUWfTPCbLJiJam8Gi44hPpsJzvMAeoU",
-  "binarySha256": "92f4eb5a7e8ce6ce23e9fa8dbc2e7d894b782081269c4dc5b670a99019334e11",
-  "publicSourceCommit": "e18534eae0950efeae77310213eb87f62e3a4927",
-  "upgradeSlot": "457299186",
-  "upgradeSignature": "32QnYhASXShuWrSf7bLtCFugegwAoMYQzkVXWpAPHr2eyUQe6BZ7hzPqR6Q9W3AvUHx5ch5aRLWYSpxQkBfomqyS",
+  "binarySha256": "4e49d6c4fed6aff89d383bfa8b484212e5b4cc41a65d84c6d53a9f3b191db626",
+  "publicSourceCommit": "1a92f5e3e09751d9fe332026d2599acc13858a7e",
+  "upgradeSlot": "457368101",
+  "upgradeSignature": "5QobaJsmD8CKvD4JhEFcdzsuTDAseKAGrQEUouMYKdemJ1gmAZezseNSHeLs5UzrspXPrDrHPajZuxo1nFzctdYh",
   "upgradeAuthority": "FtVKLnTU3E3rhwyKK1iKEqvXd4yyWbNzwpZzp6EpXZqP",
   "immutable": false,
-  "verificationSha256": "e555276fbbf60ca8ccb1a673111fe29df33d26d18a5097d4249dd29a0bc8521d",
-  "buildWorkflow": "https://github.com/penciltrade/onchain-programs/actions/runs/38759626355",
+  "verificationSha256": "abf6fedd92c5ab85034a8c961de8b363dc518839239ab7323562d5a9ef4bb466",
+  "buildWorkflow": "https://github.com/penciltrade/onchain-programs/actions/runs/38797189930",
   "repeatedBuildByteEquality": true,
   "fundedStatePreserved": true,
   "maxNotionalUSDC": 10000000,
@@ -24,5 +24,6 @@
     "targetUSDC": 1000000,
     "exponent": 2,
     "basis": "LP after winning-exposure reserves"
-  }
+  },
+  "protocolStateWrittenByUpgrade": false
 }
