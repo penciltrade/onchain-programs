@@ -7,10 +7,10 @@ The opening remains upgradeable. Permanent Seal requires the separate acceptance
 
 | Item | Required result | Current disposition |
 | --- | --- | --- |
-| Integrated release | One reviewed source commit for the relayer, keeper, collector, and monitor | All four services run `1519e68`. The private rollout journal retains previous source, configuration, and stores. |
+| Integrated release | One reviewed source commit for the relayer, keeper, collector, and monitor | All four services run integrated release `74e4694`. The private rollout journal retains previous source, configuration, and stores. |
 | Phantom desktop | Actual wallet assertions pass while economic changes fail validation | All 19 accepted captures pass the revised strict validator. Verify a fresh wallet flow after rollout. |
 | Public onboarding | Ordinary wallets can deposit and trade without manual registration | `RELAYER_PUBLIC_TRADING=1` is prepared. It remains disabled until the opening. |
-| Position cap | Program, SDK, frontend, ABI, and published source agree | The deployed cap remains 250,000 USDC. The requested 10M upgrade is still queued. |
+| Position cap | Program, SDK, frontend, ABI, and published source agree | The deployed program, SDK, frontend source, and ABI use the 10M USDC cap. |
 | Operator funding | Fund the intended traffic and retain an operating reserve separate from rent | The keeper has about 4.7 quiet days at the latest measurement. Additional public traffic requires more SOL. |
 | Health | BTC, ETH, and SOL report valid observations and fresh checkpoints | All three markets passed the latest readiness check. Continue observation through launch. |
 | Custody | Vault balances and tracked equity reconcile from one bank | The latest USDC, stake, and equity checks matched exactly. |
@@ -23,16 +23,15 @@ The opening remains upgradeable. Permanent Seal requires the separate acceptance
 
 [Commissioning evidence](../artifacts/mainnet-ops-20261015.json) records the tests, live drills, balances, and transaction signatures.
 The final checks passed 180 backend tests, 72 frontend tests, two snapshot tests, and the mainnet frontend build.
-The executable remains byte-identical to the deployed program. This rollout does not upgrade or Seal it.
+The earlier operations rollout left program code unchanged. The economics upgrade below now supersedes that executable.
 The existing program requires at least 1 USDC of opening margin. The relayer now rejects smaller requests before signing.
 
-## The pending program upgrade
+## The completed program upgrade
 
-The current cap is a compiled constant. A service restart cannot change it.
-The upgrade requires the 10M boundary checks, reserve arithmetic, neutral-extraction checks, and a reproducible SBF build.
-Then publish the source, fund and preserve the upgrade buffer, deploy, and compare complete executable bytes.
-Update the SDK, frontend bounds, ABI, deployment evidence, and explorer verification together.
-Keep clients aligned with 250,000 USDC until that transaction succeeds.
+The upgrade finalized at slot 457299186. The complete executable matches the pinned public build byte for byte.
+The public native source is `e18534eae0950efeae77310213eb87f62e3a4927`.
+The release preserves funded program records and retains upgrade authority.
+The relayer, keeper, collector, and monitor use the integrated release. Public admission remains disabled.
 
 The same batch uses a flat emission rate of 100 PENCIL per eligible USDC through $500k of tracked LP.
 Above $500k, the rate is `r(T) = 100 × (500,000 / T)`, where `T` is current tracked LP in USDC.
@@ -43,13 +42,10 @@ The batch also changes the marginal LP profit share to `8% + (40% - 8%) × (T / 
 This share caps at 40%. Here, `T` remains LP equity after winning-exposure reserves.
 The $5,000 buffer, funded-profit rules, previous-peak requirement, and payout priority remain in force.
 
-The saved deployment wallet also pays upgrade fees and buffer rent.
-Its operating balance does not establish the temporary funding requirement for a new buffer.
-Retain all upgrade keys and durable signed transactions throughout that operation.
-The latest rent quote for a 367,381-byte buffer was 1.86694572 SOL.
-The deployer held 0.007468039 SOL after the smoke tests.
-About 1.87 additional SOL covers that buffer and a 0.01 SOL fee reserve.
-The final build size determines the actual requirement. Successful upgrade returns the buffer rent.
+The saved deployment wallet pays upgrade fees and buffer rent. All keys and durable signed identities remain saved privately.
+The 380,413-byte buffer required a temporary 1.93314828 SOL deposit under the current mainnet rent schedule.
+The upgrade closed that buffer and returned its deposit. The deployer retained about 1.965 SOL after the upgrade.
+
 
 ## Opening procedure
 

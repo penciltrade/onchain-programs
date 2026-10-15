@@ -8,8 +8,9 @@ The program settles synthetic exposure against shared house cash. It does not he
 The house starts with zero cash. Unfunded profits become unsecured FIFO claims.
 V4 requires a fresh program ID and fresh state. Earlier funded layouts have no migration path.
 
-This revision is the upgrade candidate for the 10M notional cap and revised PENCIL curves.
-Deployment metadata identifies the currently deployed source commit.
+The 10M notional cap and revised PENCIL curves are deployed on mainnet.
+`deployment.json` records the verified native source, upgrade slot, executable hashes, and transaction.
+The loader retains upgrade authority. The program is not sealed.
 
 ## Build dependencies
 

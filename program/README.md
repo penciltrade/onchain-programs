@@ -234,3 +234,6 @@ Mainnet trial oracle actions reserve 1.4 million compute units and use one item 
 
 Existing tests provide examples of implemented behavior. They are not formal proofs or an independent audit.
 The property catalog separates accounting requirements from deliberate insolvency, unsecured debt, and debt-funded issuance.
+
+Commands that use the SDK or hosted service scripts require the full application repository.
+Those scripts are outside this source package.
